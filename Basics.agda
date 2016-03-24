@@ -28,11 +28,6 @@ bool_eq True  False = NEq (λ ())
 bool_eq False True  = NEq (λ ())
 bool_eq False False = Eq (Refl False)
 
-_&_ : bool -> bool -> bool
-True  & True  = True
-True  & False = False
-False & y     = False
-
 data _+_ (A B : Set) : Set where
   InL : A -> A + B
   InR : B -> A + B
@@ -153,5 +148,11 @@ insertAtFincr (b :: gam) FZ     (FS y) a = Refl b
 insertAtFincr (b :: gam) (FS x) FZ     a = Refl (gam ! x)
 insertAtFincr (b :: gam) (FS x) (FS y) a = insertAtFincr gam x y a
 
-find : {A : Set} {n : nat} -> (A -> bool) -> vect A n -> (fin n)
-find P as = {!!}
+find : {A : Set} {n : nat} (P : A -> bool) (gam : vect A n) -> option (fin n)
+find P [] = None
+find P (a :: as) with P a
+find P (a :: as) | True = [ FZ ]
+find P (a :: as) | False with find P as
+find P (a :: as) | False | None = None
+find P (a :: as) | False | [ x ] = [ FS x ]
+
