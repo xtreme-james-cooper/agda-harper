@@ -87,7 +87,7 @@ neqSuc : (x y : nat) -> not (x == y) -> not (Suc x == Suc y)
 neqSuc x .x npf (Refl .(Suc x)) = npf (Refl x)
 
 nat_eq : (x y : nat) -> Equals? x y
-nat_eq Zero     Zero    = Eq (Refl Zero)
+nat_eq Zero    Zero     = Eq (Refl Zero)
 nat_eq Zero    (Suc y)  = NEq (λ ())
 nat_eq (Suc x) Zero     = NEq (λ ())
 nat_eq (Suc x) (Suc y)  with nat_eq x y
@@ -101,6 +101,9 @@ data fin : nat -> Set where
 neqFS : {n : nat} (x y : fin n) -> not (x == y) -> not (FS x == FS y)
 neqFS x .x npf (Refl .(FS x)) = npf (Refl x)
 
+neqFS_backwards : {n : nat} (x y : fin (Suc n)) -> not (FS x == FS y) -> not (x == y)
+neqFS_backwards x .x npf (Refl .x) = npf (Refl (FS x))
+
 fin_eq : {n : nat} (x y : fin n) -> Equals? x y
 fin_eq FZ FZ          = Eq (Refl FZ)
 fin_eq FZ (FS y)      = NEq (λ ())
@@ -113,6 +116,15 @@ fincr : {n : nat} -> fin n -> fin (Suc n) -> fin (Suc n)
 fincr x      FZ     = FS x
 fincr FZ     (FS y) = FZ
 fincr (FS x) (FS y) = FS (fincr x y)
+
+fdecr : {n : nat} (x y : fin (Suc n)) -> not (x == y) -> fin n
+fdecr         FZ      FZ      npf with npf (Refl FZ)
+fdecr         FZ      FZ      npf | ()
+fdecr {Zero}  FZ      (FS ()) npf
+fdecr {Zero}  (FS ()) y       npf
+fdecr {Suc n} FZ      (FS y)  npf = FZ
+fdecr {Suc n} (FS x)  FZ      npf = x
+fdecr {Suc n} (FS x)  (FS y)  npf = FS (fdecr x y (neqFS_backwards x y npf))
 
 data vect (A : Set) : nat -> Set where
   [] : vect A Zero
@@ -142,17 +154,22 @@ insertAt FZ      vect        a = a :: vect
 insertAt (FS ()) []          a
 insertAt (FS f)  (b :: vect) a = b :: (insertAt f vect a)
 
+lookupInsertAt : {A : Set} {n : nat} (vs : vect A n) (x : fin (Suc n)) (v : A) -> (insertAt x vs v ! x) == v
+lookupInsertAt vs        FZ      v = Refl v
+lookupInsertAt []        (FS ()) v
+lookupInsertAt (x :: vs) (FS y)  v = lookupInsertAt vs y v
+
 insertAtFincr : {A : Set} {n : nat} (gam : vect A n) (x : fin n) (y : fin (Suc n)) (a : A) -> (insertAt y gam a ! fincr x y) == (gam ! x)
 insertAtFincr (b :: gam) FZ     FZ     a = Refl b
 insertAtFincr (b :: gam) FZ     (FS y) a = Refl b
 insertAtFincr (b :: gam) (FS x) FZ     a = Refl (gam ! x)
 insertAtFincr (b :: gam) (FS x) (FS y) a = insertAtFincr gam x y a
 
-find : {A : Set} {n : nat} (P : A -> bool) (gam : vect A n) -> option (fin n)
-find P [] = None
-find P (a :: as) with P a
-find P (a :: as) | True = [ FZ ]
-find P (a :: as) | False with find P as
-find P (a :: as) | False | None = None
-find P (a :: as) | False | [ x ] = [ FS x ]
-
+insertAtFdecr : {A : Set} {n : nat} {vs : vect A n} {x y : fin (Suc n)} {a b : A} -> (npf : not (y == x)) -> (insertAt x vs a ! y) == b -> (vs ! fdecr y x npf) == b
+insertAtFdecr {A} {n} {vs} {FZ} {FZ} {a} npf (Refl .a) with npf (Refl FZ)
+insertAtFdecr {A} {n} {vs} {FZ} {FZ} {a} npf (Refl .a) | ()
+insertAtFdecr {A} {.Zero} {[]} {FZ} {FS ()} npf (Refl ._)
+insertAtFdecr {A} {.Zero} {[]} {FS ()} {y} npf (Refl ._)
+insertAtFdecr {A} {Suc n} {v :: vs} {FZ} {FS y} npf (Refl .((v :: vs) ! y)) = Refl ((v :: vs) ! y)
+insertAtFdecr {A} {Suc n} {v :: vs} {FS x} {FZ} npf (Refl .v) = Refl v
+insertAtFdecr {A} {Suc n} {v :: vs} {FS x} {FS y} {a} npf (Refl .(insertAt x vs a ! y)) = insertAtFdecr (neqFS_backwards y x npf) (Refl (insertAt x vs a ! y))
