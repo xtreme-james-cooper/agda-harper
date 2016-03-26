@@ -18,8 +18,8 @@ incr           x (Abs e)                   = Abs (incr (fincr x FZ) e)
 
 subst : {n : nat} {gam : vect type n} {t1 t2 : type} (x : fin (Suc n)) -> lam (insertAt x gam t1) t2 -> lam gam t1 -> lam gam t2
 subst x (Var y pf)         v with fin_eq y x
-subst x (Var .x (Refl ._)) v | Eq (Refl .x) = cast v (funEq (lam _) (flip (lookupInsertAt _ x _)))
-subst x (Var y pf)         v | NEq npf      = Var (fdecr y x npf) (insertAtFdecr npf pf)
+subst x (Var .x (Refl ._)) v | Yes (Refl .x) = v castTo (funEq (lam _) (flip (lookupInsertAt _ x _)))
+subst x (Var y pf)         v | No npf        = Var (fdecr y x npf) (insertAtFdecr npf pf)
 subst x (App e1 e2)        v = App (subst x e1 v) (subst x e2 v)
 subst x (Abs e)            v = Abs (subst (fincr x FZ) e (incr FZ v))
 
