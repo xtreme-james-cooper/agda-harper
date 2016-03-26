@@ -1,5 +1,7 @@
 module Basics where
 
+open import Agda.Primitive
+
 data Falsity : Set where
 
 not : Set -> Set
@@ -8,11 +10,17 @@ not x = x -> Falsity
 data Truth : Set where
   tt : Truth
 
-data _==_ {i} {A : Set i} : A -> A -> Set i where
+data _==_ {i : Level} {A : Set i} : A -> A -> Set i where
   Refl : (a : A) -> a == a
 
 cast : {A B : Set} -> A -> A == B -> B
 cast a (Refl A) = a
+
+flip : {A : Set} {a b : A} -> a == b -> b == a
+flip (Refl a) = Refl a
+
+funEq : {i j : Level} {A : Set i} {B : Set j} {a b : A} (f : A -> B) -> a == b -> f a == f b
+funEq f (Refl a) = Refl (f a)
 
 data Equals? {A : Set} : A -> A -> Set where
   Eq : {x y : A} -> x == y -> Equals? x y
