@@ -39,9 +39,9 @@ bool_eq True  False = No (λ ())
 bool_eq False True  = No (λ ())
 bool_eq False False = Yes (Refl False)
 
-data _+_ (A B : Set) : Set where
-  InL : A -> A + B
-  InR : B -> A + B
+data _\/_ (A B : Set) : Set where
+  InL : A -> A \/ B
+  InR : B -> A \/ B
 
 neqInL : {A B : Set} (x y : A) -> not (x == y) -> not (InL {A} {B} x == InL y)
 neqInL x .x npf (Refl .(InL x)) = npf (Refl x)
@@ -49,7 +49,7 @@ neqInL x .x npf (Refl .(InL x)) = npf (Refl x)
 neqInR : {A B : Set} (x y : B) -> not (x == y) -> not (InR {A} {B} x == InR y)
 neqInR x .x npf (Refl .(InR x)) = npf (Refl x)
 
-pair_eq : {A B : Set} -> ((a b : A) -> equals? a b) -> ((a b : B) -> equals? a b) -> (x y : A + B) -> equals? x y
+pair_eq : {A B : Set} -> ((a b : A) -> equals? a b) -> ((a b : B) -> equals? a b) -> (x y : A \/ B) -> equals? x y
 pair_eq A_eq B_eq (InL x) (InL y)  with A_eq x y
 pair_eq A_eq B_eq (InL x) (InL .x) | Yes (Refl .x) = Yes (Refl (InL x))
 pair_eq A_eq B_eq (InL x) (InL y)  | No npf        = No (neqInL x y npf)
