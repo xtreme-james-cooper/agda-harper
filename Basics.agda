@@ -43,44 +43,41 @@ data _\/_ (A B : Set) : Set where
   InL : A -> A \/ B
   InR : B -> A \/ B
 
-neqInL : {A B : Set} (x y : A) -> not (x == y) -> not (InL {A} {B} x == InL y)
-neqInL x .x npf (Refl .(InL x)) = npf (Refl x)
-
-neqInR : {A B : Set} (x y : B) -> not (x == y) -> not (InR {A} {B} x == InR y)
-neqInR x .x npf (Refl .(InR x)) = npf (Refl x)
-
 pair_eq : {A B : Set} -> ((a b : A) -> equals? a b) -> ((a b : B) -> equals? a b) -> (x y : A \/ B) -> equals? x y
 pair_eq A_eq B_eq (InL x) (InL y)  with A_eq x y
 pair_eq A_eq B_eq (InL x) (InL .x) | Yes (Refl .x) = Yes (Refl (InL x))
 pair_eq A_eq B_eq (InL x) (InL y)  | No npf        = No (neqInL x y npf)
+  where
+    neqInL : {A B : Set} (x y : A) -> not (x == y) -> not (InL {A} {B} x == InL y)
+    neqInL x .x npf (Refl .(InL x)) = npf (Refl x)
 pair_eq A_eq B_eq (InL x) (InR y)  = No (λ ())
 pair_eq A_eq B_eq (InR x) (InL y)  = No (λ ())
 pair_eq A_eq B_eq (InR x) (InR y)  with B_eq x y
 pair_eq A_eq B_eq (InR x) (InR .x) | Yes (Refl .x) = Yes (Refl (InR x))
 pair_eq A_eq B_eq (InR x) (InR y)  | No npf        = No (neqInR x y npf)
+  where
+    neqInR : {A B : Set} (x y : B) -> not (x == y) -> not (InR {A} {B} x == InR y)
+    neqInR x .x npf (Refl .(InR x)) = npf (Refl x)
 
 data _*_ (A : Set) (B : A -> Set) : Set where
   _,_ : (a : A) (b : B a) -> A * B
-
-neqFst : {A : Set} {B : A -> Set} (x y : A) (z : B x) (w : B y) -> not (x == y) -> not ((x , z) == (y , w))
-neqFst x .x z .z npf (Refl .(x , z)) = npf (Refl x)
-
-neqSnd : {A : Set} {B : A -> Set} (x : A) (y z : B x) -> not (y == z) -> not ((_,_ {A} {B} x y) == (x , z))
-neqSnd x y .y npf (Refl .(x , y)) = npf (Refl y)
 
 prod_eq : {A : Set} {B : A -> Set} -> ((a b : A) -> equals? a b) -> ({c : A} (a b : B c) -> equals? a b) -> (x y : A * B) -> equals? x y
 prod_eq A_eq B_eq (a , b) (a' , b') with A_eq a a'
 prod_eq A_eq B_eq (a , b) (.a , b') | Yes (Refl .a) with B_eq b b'
 prod_eq A_eq B_eq (a , b) (.a , .b) | Yes (Refl .a) | Yes (Refl .b) = Yes (Refl (a , b))
 prod_eq A_eq B_eq (a , b) (.a , b') | Yes (Refl .a) | No npf        = No (neqSnd a b b' npf)
+  where
+    neqSnd : {A : Set} {B : A -> Set} (x : A) (y z : B x) -> not (y == z) -> not ((_,_ {A} {B} x y) == (x , z))
+    neqSnd x y .y npf (Refl .(x , y)) = npf (Refl y)
 prod_eq A_eq B_eq (a , b) (a' , b') | No npf        = No (neqFst a a' b b' npf)
+  where
+    neqFst : {A : Set} {B : A -> Set} (x y : A) (z : B x) (w : B y) -> not (x == y) -> not ((x , z) == (y , w))
+    neqFst x .x z .z npf (Refl .(x , z)) = npf (Refl x)
 
 data option (A : Set) : Set where
   None : option A
   [_] : A -> option A
-
-neqSome : {A : Set} (x y : A) -> not (x == y) -> not ([ x ] == [ y ])
-neqSome x .x npf (Refl .([ x ])) = npf (Refl x)
 
 opt_eq : {A : Set} -> ((a b : A) -> equals? a b) -> (x y : option A) -> equals? x y
 opt_eq A_eq None  None   = Yes (Refl None)
@@ -89,13 +86,13 @@ opt_eq A_eq [ x ] None   = No (λ ())
 opt_eq A_eq [ x ] [ y ]  with A_eq x y
 opt_eq A_eq [ x ] [ .x ] | Yes (Refl .x) = Yes (Refl [ x ])
 opt_eq A_eq [ x ] [ y ]  | No npf        = No (neqSome x y npf)
+  where
+    neqSome : {A : Set} (x y : A) -> not (x == y) -> not ([ x ] == [ y ])
+    neqSome x .x npf (Refl .([ x ])) = npf (Refl x)
 
 data nat : Set where
   Zero : nat
   Suc : nat -> nat
-
-neqSuc : (x y : nat) -> not (x == y) -> not (Suc x == Suc y)
-neqSuc x .x npf (Refl .(Suc x)) = npf (Refl x)
 
 nat_eq : (x y : nat) -> equals? x y
 nat_eq Zero    Zero     = Yes (Refl Zero)
@@ -104,13 +101,13 @@ nat_eq (Suc x) Zero     = No (λ ())
 nat_eq (Suc x) (Suc y)  with nat_eq x y
 nat_eq (Suc x) (Suc .x) | Yes (Refl .x) = Yes (Refl (Suc x))
 nat_eq (Suc x) (Suc y)  | No npf        = No(neqSuc x y npf)
+  where    
+    neqSuc : (x y : nat) -> not (x == y) -> not (Suc x == Suc y)
+    neqSuc x .x npf (Refl .(Suc x)) = npf (Refl x)
 
 data fin : nat -> Set where
   FZ : {n : nat} -> fin (Suc n)
   FS : {n : nat} -> fin n -> fin (Suc n)
-
-neqFS : {n : nat} (x y : fin n) -> not (x == y) -> not (FS x == FS y)
-neqFS x .x npf (Refl .(FS x)) = npf (Refl x)
 
 neqFS_backwards : {n : nat} (x y : fin (Suc n)) -> not (FS x == FS y) -> not (x == y)
 neqFS_backwards x .x npf (Refl .x) = npf (Refl (FS x))
@@ -122,6 +119,9 @@ fin_eq (FS x) FZ      = No (λ ())
 fin_eq (FS x) (FS y)  with fin_eq x y
 fin_eq (FS x) (FS .x) | Yes (Refl .x) = Yes (Refl (FS x))
 fin_eq (FS x) (FS y)  | No npf        = No (neqFS x y npf)
+  where
+    neqFS : {n : nat} (x y : fin n) -> not (x == y) -> not (FS x == FS y)
+    neqFS x .x npf (Refl .(FS x)) = npf (Refl x)
 
 fincr : {n : nat} -> fin n -> fin (Suc n) -> fin (Suc n)
 fincr x      FZ     = FS x
@@ -141,19 +141,20 @@ data vect (A : Set) : nat -> Set where
   [] : vect A Zero
   _::_ : {n : nat} -> A -> vect A n -> vect A (Suc n)
 
-neqHd : {A : Set} {n : nat} (a b : A) (as bs : vect A n) -> not (a == b) -> not ((a :: as) == (b :: bs))
-neqHd a .a as .as npf (Refl .(a :: as)) = npf (Refl a)
-
-neqTl : {A : Set} {n : nat} (a b : A) (as bs : vect A n) -> not (as == bs) -> not ((a :: as) == (b :: bs))
-neqTl a .a as .as npf (Refl .(a :: as)) = npf (Refl as)
-
 vect_eq : {A : Set} {n : nat} -> ((a b : A) -> equals? a b) -> (x y : vect A n) -> equals? x y 
 vect_eq A_eq [] []                 = Yes (Refl [])
 vect_eq A_eq (a :: as) (b :: bs)   with A_eq a b
 vect_eq A_eq (a :: as) (.a :: bs)  | Yes (Refl .a) with vect_eq A_eq as bs
 vect_eq A_eq (a :: as) (.a :: .as) | Yes (Refl .a) | Yes (Refl .as) = Yes (Refl (a :: as))
 vect_eq A_eq (a :: as) (.a :: bs)  | Yes (Refl .a) | No npf         = No (neqTl a a as bs npf)
+  where
+    neqTl : {A : Set} {n : nat} (a b : A) (as bs : vect A n) -> not (as == bs) -> not ((a :: as) == (b :: bs))
+    neqTl a .a as .as npf (Refl .(a :: as)) = npf (Refl as)
+
 vect_eq A_eq (a :: as) (b :: bs)   | No npf        = No (neqHd a b as bs npf)
+  where
+    neqHd : {A : Set} {n : nat} (a b : A) (as bs : vect A n) -> not (a == b) -> not ((a :: as) == (b :: bs))
+    neqHd a .a as .as npf (Refl .(a :: as)) = npf (Refl a)
 
 _!_ : {A : Set} {n : nat} -> vect A n -> fin n -> A
 []       ! ()
