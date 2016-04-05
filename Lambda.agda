@@ -11,6 +11,22 @@ data type : nat -> Set where
   _+_ : {tn : nat} -> type tn -> type tn -> type tn
   TyVar : {tn : nat} -> fin tn -> type tn
 
+data polytype {tn : nat} (tv : fin tn) : type tn -> Set where
+  PolyN : polytype tv N
+  PolyUnit : polytype tv Unit
+  PolyX : {t1 t2 : type tn} -> polytype tv t1 -> polytype tv t2 -> polytype tv (t1 X t2)
+  PolyVoid : polytype tv Void
+  Poly+ : {t1 t2 : type tn} -> polytype tv t1 -> polytype tv t2 -> polytype tv (t1 + t2)
+  PolyVar : polytype tv (TyVar tv)
+
+tsubst : {n : nat} (tv : fin (Suc n)) (t : type (Suc n)) -> polytype tv t -> type n -> type n
+tsubst tv N           PolyN           v = N
+tsubst tv Unit        PolyUnit        v = Unit
+tsubst tv (t1 X t2)   (PolyX pf1 pf2) v = tsubst tv t1 pf1 v X tsubst tv t2 pf2 v
+tsubst tv Void        PolyVoid        v = Void
+tsubst tv (t1 + t2)   (Poly+ pf1 pf2) v = tsubst tv t1 pf1 v + tsubst tv t2 pf2 v
+tsubst tv (TyVar .tv) PolyVar         v = v
+
 data direction : Set where
   L : direction
   R : direction
@@ -32,6 +48,8 @@ data lam {n tn : nat} (gam : vect (type tn) n) : type tn -> Set where
   Abort : {t : type tn} -> lam gam Void -> lam gam t
   Inj : {t1 t2 : type tn} (d : direction) -> lam gam (proj d t1 t2) -> lam gam (t1 + t2)
   Case : {t1 t2 t : type tn} -> lam gam (t1 + t2) -> lam (t1 :: gam) t -> lam (t2 :: gam) t -> lam gam t
+  Map : {rh rh' : type tn} (tv : fin (Suc tn)) (t : type (Suc tn)) (pf : polytype tv t) -> lam (rh :: gam) rh' -> lam gam (tsubst tv t pf rh) -> 
+    lam gam (tsubst tv t pf rh')
 
 incr : {n tn : nat} {gam : vect (type tn) n} {t1 t2 : type tn} (x : fin (Suc n)) -> lam gam t2 -> lam  (insertAt x gam t1) t2
 incr {gam = gam} x (Var y (Refl .(gam ! y))) = Var (fincr y x) (insertAtFincr gam y x _)
@@ -46,6 +64,7 @@ incr             x (Proj d e)                = Proj d (incr x e)
 incr             x (Abort e)                 = Abort (incr x e)
 incr             x (Inj d e)                 = Inj d (incr x e)
 incr             x (Case e el er)            = Case (incr x e) (incr (fincr x FZ) el) (incr (fincr x FZ) er)
+incr             x (Map tv t pf e0 e)        = Map tv t pf (incr (fincr x FZ) e0) (incr x e)
 
 subst : {n tn : nat} {gam : vect (type tn) n} {t1 t2 : type tn} (x : fin (Suc n)) -> lam (insertAt x gam t1) t2 -> lam gam t1 -> lam gam t2
 subst x (Var y pf)         v with fin_eq y x
@@ -62,6 +81,7 @@ subst x (Proj d e)         v = Proj d (subst x e v)
 subst x (Abort e)          v = Abort (subst x e v)
 subst x (Inj d e)          v = Inj d (subst x e v)
 subst x (Case e el er)     v = Case (subst x e v) (subst (fincr x FZ) el (incr FZ v)) (subst (fincr x FZ) er (incr FZ v))
+subst x (Map tv t pf e0 e) v = Map tv t pf (subst (fincr x FZ) e0 (incr FZ v)) (subst x e v)
 
 data isVal {n tn : nat} {gam : vect (type tn) n} : {t : type tn} -> lam gam t -> Set where
   AbsVal : {t1 t2 : type tn} (e : lam (t2 :: gam) t1) -> isVal (Abs e)
@@ -90,6 +110,18 @@ data eval {n tn : nat} {gam : vect (type tn) n} : {t : type tn} -> lam gam t -> 
   EvalCase1 : {t1 t2 t : type tn} {e e' : lam gam (t1 + t2)} {el : lam (t1 :: gam) t} {er : lam (t2 :: gam) t} -> eval e e' -> eval (Case e el er) (Case e' el er)
   EvalCase2 : {t1 t2 t : type tn} {e : lam gam t1} {el : lam (t1 :: gam) t} {er : lam (t2 :: gam) t} -> isVal e -> eval (Case (Inj L e) el er) (subst FZ el e)
   EvalCase3 : {t1 t2 t : type tn} {e : lam gam t2} {el : lam (t1 :: gam) t} {er : lam (t2 :: gam) t} -> isVal e -> eval (Case (Inj R e) el er) (subst FZ er e)
+  EvalMapVar : {tv : fin (Suc tn)} {t1 t2 : type tn} {e : lam gam t1} {f : lam (t1 :: gam) t2} -> eval (Map tv (TyVar tv) PolyVar f e) (subst FZ f e)
+  EvalMapUnit : {tv : fin (Suc tn)} {t1 t2 : type tn} {e : lam gam Unit} {f : lam (t1 :: gam) t2} -> eval (Map tv Unit PolyUnit f e) e
+  EvalMapProd : {tv : fin (Suc tn)} {t1 t2 : type (Suc tn)} {t3 t4 : type tn} {pf1 : polytype tv t1} {pf2 : polytype tv t2} 
+    {e : lam gam (tsubst tv t1 pf1 t3 X tsubst tv t2 pf2 t3)} {f : lam (t3 :: gam) t4} -> 
+      eval (Map tv (t1 X t2) (PolyX pf1 pf2) f e) (Pair (Map tv t1 pf1 f (Proj L e)) (Map tv t2 pf2 f (Proj R e)))
+  EvalMapVoid : {tv : fin (Suc tn)} {t1 t2 : type tn} {e : lam gam Void} {f : lam (t2 :: gam) t1} -> eval (Map tv Void PolyVoid f e) (Abort e)
+  EvalMapPair : {tv : fin (Suc tn)} {t1 t2 : type (Suc tn)} {t3 t4 : type tn} {pf1 : polytype tv t1} {pf2 : polytype tv t2} 
+    {e : lam gam (tsubst tv t1 pf1 t3 + tsubst tv t2 pf2 t3)} {f : lam (t3 :: gam) t4} -> 
+      eval (Map tv (t1 + t2) (Poly+ pf1 pf2) f e) 
+           (Case e (Inj L (Map tv t1 pf1 (incr (FS FZ) f) (Var FZ (Refl (tsubst tv t1 pf1 t3))))) 
+                   (Inj R (Map tv t2 pf2 (incr (FS FZ) f) (Var FZ (Refl (tsubst tv t2 pf2 t3))))))
+  EvalMapN : {tv : fin (Suc tn)} {t1 t2 : type tn} {e : lam gam N} {f : lam (t2 :: gam) t1} -> eval (Map tv N PolyN f e) e
 
 evaluate : {t : type Zero} (e : lam [] t) -> isVal e \/ (lam [] t * eval e)
 evaluate (Var () pf)
@@ -123,7 +155,16 @@ evaluate (Abort e)               | InR (e' , ev) = InR (Abort e' , EvalAbort ev)
 evaluate (Inj d e)               with evaluate e
 evaluate (Inj d e)               | InL x         = InL (InjVal d e x)
 evaluate (Inj d e)               | InR (e' , ev) = InR (Inj d e' , EvalInj ev)
-evaluate (Case e el er)          with evaluate e
+evaluate (Case e          el er) with evaluate e
 evaluate (Case .(Inj L e) el er) | InL (InjVal L e x) = InR (subst FZ el e , EvalCase2 x)
 evaluate (Case .(Inj R e) el er) | InL (InjVal R e x) = InR (subst FZ er e , EvalCase3 x)
-evaluate (Case e el er)          | InR (e' , ev) = InR (Case e' el er , EvalCase1 ev)
+evaluate (Case e          el er) | InR (e' , ev) = InR (Case e' el er , EvalCase1 ev)
+evaluate (Map tv N           PolyN           e0 e) = InR (e , EvalMapN)
+evaluate (Map tv Unit        PolyUnit        e0 e) = InR (e , EvalMapUnit)
+evaluate (Map tv (t1 X t2)   (PolyX pf1 pf2) e0 e) = InR (Pair (Map tv t1 pf1 e0 (Proj L e)) (Map tv t2 pf2 e0 (Proj R e)) , EvalMapProd)
+evaluate (Map tv Void        PolyVoid        e0 e) = InR (Abort e , EvalMapVoid)
+evaluate (Map tv (t1 + t2)   (Poly+ pf1 pf2) e0 e) = InR (Case e leftarg rightarg , EvalMapPair)
+  where 
+    leftarg =  Inj L (Map tv t1 pf1 (incr (FS FZ) e0) (Var FZ _))
+    rightarg = Inj R (Map tv t2 pf2 (incr (FS FZ) e0) (Var FZ _))
+evaluate (Map tv (TyVar .tv) PolyVar         e0 e) = InR (subst FZ e0 e , EvalMapVar)
