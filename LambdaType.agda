@@ -18,9 +18,28 @@ data varFree {tn : nat} (tv : fin tn) : type tn -> Set where
   VarFreeX : {t1 t2 : type tn} -> varFree tv t1 -> varFree tv t2 -> varFree tv (t1 X t2)
   VarFreeVoid : varFree tv Void
   VarFree+ : {t1 t2 : type tn} -> varFree tv t1 -> varFree tv t2 -> varFree tv (t1 + t2)
-  VarFreeVar : {tv' : fin tn} -> not (tv' == tv) -> varFree tv (TyVar tv')
+  VarFreeVar : {tv' : fin tn} -> finNeq tv' tv -> varFree tv (TyVar tv')
   VarFreeInd : {t : type (Suc tn)} -> varFree (fincr tv FZ) t -> varFree tv (Ind t)
   VarFreeCoInd : {t : type (Suc tn)} -> varFree (fincr tv FZ) t -> varFree tv (CoInd t)
+
+varFreeIden : {tn : nat} {tv : fin tn} {t : type tn} (pf1 pf2 : varFree tv t) -> pf1 == pf2
+varFreeIden (VarFree=> pf1 pf2) (VarFree=> pf3 pf4)   with varFreeIden pf1 pf3
+varFreeIden (VarFree=> pf1 pf2) (VarFree=> .pf1 pf4)  | Refl .pf1 with varFreeIden pf2 pf4
+varFreeIden (VarFree=> pf1 pf2) (VarFree=> .pf1 .pf2) | Refl .pf1 | Refl .pf2 = Refl (VarFree=> pf1 pf2)
+varFreeIden VarFreeUnit         VarFreeUnit           = Refl VarFreeUnit
+varFreeIden (VarFreeX pf1 pf2)  (VarFreeX pf3 pf4)    with varFreeIden pf1 pf3
+varFreeIden (VarFreeX pf1 pf2)  (VarFreeX .pf1 pf4)   | Refl .pf1 with varFreeIden pf2 pf4
+varFreeIden (VarFreeX pf1 pf2)  (VarFreeX .pf1 .pf2)  | Refl .pf1 | Refl .pf2 = Refl (VarFreeX pf1 pf2)
+varFreeIden VarFreeVoid         VarFreeVoid           = Refl VarFreeVoid
+varFreeIden (VarFree+ pf1 pf2)  (VarFree+ pf3 pf4)    with varFreeIden pf1 pf3
+varFreeIden (VarFree+ pf1 pf2)  (VarFree+ .pf1 pf4)   | Refl .pf1 with varFreeIden pf2 pf4
+varFreeIden (VarFree+ pf1 pf2)  (VarFree+ .pf1 .pf2)  | Refl .pf1 | Refl .pf2 = Refl (VarFree+ pf1 pf2)
+varFreeIden (VarFreeVar ntv)    (VarFreeVar ntv')     with finNeqIden ntv ntv'
+varFreeIden (VarFreeVar ntv)    (VarFreeVar .ntv)     | Refl .ntv = Refl (VarFreeVar ntv)
+varFreeIden (VarFreeInd pf1)    (VarFreeInd pf2)      with varFreeIden pf1 pf2
+varFreeIden (VarFreeInd pf1)    (VarFreeInd .pf1)     | Refl .pf1 = Refl (VarFreeInd pf1)
+varFreeIden (VarFreeCoInd pf1)  (VarFreeCoInd pf2)    with varFreeIden pf1 pf2
+varFreeIden (VarFreeCoInd pf1)  (VarFreeCoInd .pf1)   | Refl .pf1 = Refl (VarFreeCoInd pf1)
 
 checkFreeness : {tn : nat} (tv : fin tn) (t : type tn) -> decide (varFree tv t) 
 checkFreeness tv (t1 => t2) with checkFreeness tv t1
@@ -62,8 +81,8 @@ checkFreeness tv (TyVar tv') with fin_eq tv' tv
 checkFreeness tv (TyVar .tv) | Yes (Refl .tv) = No (ckVar tv)
   where
     ckVar : {tn : nat} (tv : fin tn) -> not (varFree tv (TyVar tv))
-    ckVar tv (VarFreeVar npf) = npf (Refl tv)
-checkFreeness tv (TyVar tv') | No npf         = Yes (VarFreeVar npf)
+    ckVar tv (VarFreeVar npf) = neqToNeq npf (Refl tv)
+checkFreeness tv (TyVar tv') | No npf         = Yes (VarFreeVar (neqToNeq' npf))
 checkFreeness tv (Ind t) with checkFreeness (fincr tv FZ) t
 checkFreeness tv (Ind t) | Yes pf = Yes (VarFreeInd pf)
 checkFreeness tv (Ind t) | No npf = No (ckIn npf)
@@ -91,7 +110,7 @@ squashOut tv Unit        pf                  = Unit
 squashOut tv (t1 X t2)   (VarFreeX pf1 pf2)  = squashOut tv t1 pf1 X squashOut tv t2 pf2
 squashOut tv Void        pf                  = Void
 squashOut tv (t1 + t2)   (VarFree+ pf1 pf2)  = squashOut tv t1 pf1 + squashOut tv t2 pf2
-squashOut tv (TyVar tv') (VarFreeVar npf)    = TyVar (fdecr tv' tv npf)
+squashOut tv (TyVar tv') (VarFreeVar npf)    = TyVar (fdecr tv' tv (neqToNeq npf))
 squashOut tv (Ind t)     (VarFreeInd pf)     = Ind (squashOut (fincr tv FZ) t pf)
 squashOut tv (CoInd t)   (VarFreeCoInd pf)   = Ind (squashOut (fincr tv FZ) t pf)
 
@@ -102,3 +121,17 @@ tsubst tv Void        PosVoid         v = Void
 tsubst tv (t1 + t2)   (Pos+ pf1 pf2)  v = tsubst tv t1 pf1 v + tsubst tv t2 pf2 v
 tsubst tv (TyVar .tv) PosVar          v = v
 tsubst tv (t1 => t2)  (Pos=> pf1 pf2) v = squashOut tv t1 pf1 => tsubst tv t2 pf2 v
+
+postypeIden : {tn : nat} {tv : fin tn} {t : type tn} (pf1 pf2 : postype tv t) -> pf1 == pf2
+postypeIden (Pos=> vf1 pf1) (Pos=> vf2 pf2)   with varFreeIden vf1 vf2
+postypeIden (Pos=> vf1 pf1) (Pos=> .vf1 pf2)  | Refl .vf1 with postypeIden pf1 pf2
+postypeIden (Pos=> vf1 pf1) (Pos=> .vf1 .pf1) | Refl .vf1 | Refl .pf1 = Refl (Pos=> vf1 pf1)
+postypeIden PosUnit         PosUnit           = Refl PosUnit
+postypeIden (PosX pf1 pf2)  (PosX pf3 pf4)    with postypeIden pf1 pf3
+postypeIden (PosX pf1 pf2)  (PosX .pf1 pf4)   | Refl .pf1 with postypeIden pf2 pf4
+postypeIden (PosX pf1 pf2)  (PosX .pf1 .pf2)  | Refl .pf1 | Refl .pf2 = Refl (PosX pf1 pf2)
+postypeIden PosVoid         PosVoid           = Refl PosVoid
+postypeIden (Pos+ pf1 pf2)  (Pos+ pf3 pf4)    with postypeIden pf1 pf3
+postypeIden (Pos+ pf1 pf2)  (Pos+ .pf1 pf4)   | Refl .pf1 with postypeIden pf2 pf4
+postypeIden (Pos+ pf1 pf2)  (Pos+ .pf1 .pf2)  | Refl .pf1 | Refl .pf2 = Refl (Pos+ pf1 pf2)
+postypeIden PosVar          PosVar            = Refl PosVar

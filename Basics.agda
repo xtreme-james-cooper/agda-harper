@@ -109,7 +109,7 @@ data fin : nat -> Set where
   FZ : {n : nat} -> fin (Suc n)
   FS : {n : nat} -> fin n -> fin (Suc n)
 
-neqFS_backwards : {n : nat} (x y : fin (Suc n)) -> not (FS x == FS y) -> not (x == y)
+neqFS_backwards : {n : nat} (x y : fin n) -> not (FS x == FS y) -> not (x == y)
 neqFS_backwards x .x npf (Refl .x) = npf (Refl (FS x))
 
 fin_eq : {n : nat} (x y : fin n) -> equals? x y
@@ -122,6 +122,30 @@ fin_eq (FS x) (FS y)  | No npf        = No (neqFS x y npf)
   where
     neqFS : {n : nat} (x y : fin n) -> not (x == y) -> not (FS x == FS y)
     neqFS x .x npf (Refl .(FS x)) = npf (Refl x)
+
+data finNeq : {n : nat} -> fin n -> fin n -> Set where
+  ZNeqS : {n : nat} {f : fin n} -> finNeq FZ (FS f)
+  SNeqZ : {n : nat} {f : fin n} -> finNeq (FS f) FZ
+  SNeqS : {n : nat} {f g : fin n} -> finNeq f g -> finNeq (FS f) (FS g)
+
+finNeqIden : {n : nat} {x y : fin n} (pf1 pf2 : finNeq x y) -> pf1 == pf2
+finNeqIden ZNeqS       ZNeqS        = Refl ZNeqS
+finNeqIden SNeqZ       SNeqZ        = Refl SNeqZ
+finNeqIden (SNeqS pf1) (SNeqS pf2)  with finNeqIden pf1 pf2
+finNeqIden (SNeqS pf1) (SNeqS .pf1) | Refl .pf1 = Refl (SNeqS pf1)
+
+neqToNeq : {n : nat} {x y : fin n} -> finNeq x y -> not (x == y)
+neqToNeq            ZNeqS       ()
+neqToNeq            SNeqZ       ()
+neqToNeq {x = FS x} (SNeqS neq) (Refl .(FS x)) = neqToNeq neq (Refl x)
+
+neqToNeq' : {n : nat} {x y : fin n} -> not (x == y) -> finNeq x y
+neqToNeq' {Suc n} {FZ}   {FZ}   npf with npf (Refl FZ)
+neqToNeq' {Suc n} {FZ}   {FZ}   npf | ()
+neqToNeq' {Suc n} {FZ}   {FS y} npf = ZNeqS
+neqToNeq' {Suc n} {FS x} {FZ}   npf = SNeqZ
+neqToNeq' {Suc n} {FS x} {FS y} npf with neqToNeq' (neqFS_backwards x y npf)
+neqToNeq' {Suc n} {FS x} {FS y} npf | pf = SNeqS pf
 
 fincr : {n : nat} -> fin n -> fin (Suc n) -> fin (Suc n)
 fincr x      FZ     = FS x

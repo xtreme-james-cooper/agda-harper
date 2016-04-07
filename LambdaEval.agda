@@ -28,8 +28,8 @@ data eval {n tn : nat} {gam : vect (type tn) n} : {t : type tn} -> lam gam t -> 
   EvalCase3 : {t1 t2 t : type tn} {e : lam gam t2} {el : lam (t1 :: gam) t} {er : lam (t2 :: gam) t} -> isVal e -> eval (Case (Inj R e) el er) (subst FZ er e)
   EvalRec1 : {t : type (Suc tn)} {t2 : type tn} {pf : postype FZ t} {e0 : lam (tsubst FZ t pf t2 :: gam) t2} {e e' : lam gam (Ind t)} -> eval e e' -> 
     eval (Rec pf e0 e) (Rec pf e0 e')
-  EvalRec2 : {t : type (Suc tn)} {t2 : type tn} {pf1 pf2 : postype FZ t} {e0 : lam (tsubst FZ t pf1 t2 :: gam) t2} {e2 : lam gam (tsubst FZ t pf2 (Ind t))} ->
-    eval (Rec pf1 e0 (Fold pf2 e2)) (subst FZ e0 (Map FZ t {!!} (Rec pf1 (incr (FS FZ) e0) (Var FZ (Refl (Ind t)))) e2))
+  EvalRec2 : {t : type (Suc tn)} {t2 : type tn} {pf : postype FZ t} {e0 : lam (tsubst FZ t pf t2 :: gam) t2} {e2 : lam gam (tsubst FZ t pf (Ind t))} ->
+    eval (Rec pf e0 (Fold pf e2)) (subst FZ e0 (Map FZ t pf (Rec pf (incr (FS FZ) e0) (Var FZ (Refl (Ind t)))) e2))
   EvalMapVar : {tv : fin (Suc tn)} {t1 t2 : type tn} {e : lam gam t1} {f : lam (t1 :: gam) t2} -> eval (Map tv (TyVar tv) PosVar f e) (subst FZ f e)
   EvalMapUnit : {tv : fin (Suc tn)} {t1 t2 : type tn} {e : lam gam Unit} {f : lam (t1 :: gam) t2} -> eval (Map tv Unit PosUnit f e) e
   EvalMapX : {tv : fin (Suc tn)} {t1 t2 : type (Suc tn)} {t3 t4 : type tn} {pf1 : postype tv t1} {pf2 : postype tv t2} 
@@ -75,7 +75,8 @@ evaluate (Case .(Inj R e) el er)  | InL (InjVal R e x) = InR (subst FZ er e , Ev
 evaluate (Case e          el er)  | InR (e' , ev)      = InR (Case e' el er , EvalCase1 ev)
 evaluate (Fold pf e)              = InL FoldVal
 evaluate (Rec pf e0 e)            with evaluate e
-evaluate (Rec pf e0 (Fold pf2 e)) | InL FoldVal   = InR ({!!} , EvalRec2)
+evaluate (Rec pf e0 (Fold pf2 e)) | InL FoldVal   with postypeIden pf pf2
+evaluate (Rec pf e0 (Fold .pf e)) | InL FoldVal | Refl .pf = InR (subst FZ e0 (Map FZ _ pf (Rec pf (incr (FS FZ) e0) (Var FZ _)) e) , EvalRec2)
 evaluate (Rec pf e0 e)            | InR (e' , ev) = InR (Rec pf e0 e' , EvalRec1 ev)
 evaluate (Unfold pf e)            = {!!}
 evaluate (Gen pf e0 e)            = InL GenVal
