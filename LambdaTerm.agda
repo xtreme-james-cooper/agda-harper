@@ -21,8 +21,8 @@ data lam {n tn : nat} (gam : vect (type tn) n) : type tn -> Set where
   Abort : {t : type tn} -> lam gam Void -> lam gam t
   Inj : {t1 t2 : type tn} (d : direction) -> lam gam (proj d t1 t2) -> lam gam (t1 + t2)
   Case : {t1 t2 t : type tn} -> lam gam (t1 + t2) -> lam (t1 :: gam) t -> lam (t2 :: gam) t -> lam gam t
-  Map : {rh rh' : type tn} (tv : fin (Suc tn)) (t : type (Suc tn)) (pf : postype tv t) -> lam (rh :: gam) rh' -> lam gam (tsubst tv t pf rh) -> 
-    lam gam (tsubst tv t pf rh')
+  Map : {rh rh' : type tn} (t : type (Suc tn)) (pf : postype FZ t) -> lam (rh :: gam) rh' -> lam gam (tsubst FZ t pf rh) -> 
+    lam gam (tsubst FZ t pf rh')
   Fold : {t : type (Suc tn)} (pf : postype FZ t) -> lam gam (tsubst FZ t pf (Ind t)) -> lam gam (Ind t)
   Rec : {t : type (Suc tn)} {t2 : type tn} (pf : postype FZ t) -> lam (tsubst FZ t pf t2 :: gam) t2 -> lam gam (Ind t) -> lam gam t2
   Unfold : {t : type (Suc tn)} (pf : postype FZ t) -> lam gam (CoInd t) -> lam gam (tsubst FZ t pf (CoInd t))
@@ -38,7 +38,7 @@ incr             x (Proj d e)                = Proj d (incr x e)
 incr             x (Abort e)                 = Abort (incr x e)
 incr             x (Inj d e)                 = Inj d (incr x e)
 incr             x (Case e el er)            = Case (incr x e) (incr (fincr x FZ) el) (incr (fincr x FZ) er)
-incr             x (Map tv t pf e0 e)        = Map tv t pf (incr (fincr x FZ) e0) (incr x e)
+incr             x (Map t pf e0 e)           = Map t pf (incr (fincr x FZ) e0) (incr x e)
 incr             x (Fold pf e)               = Fold pf (incr x e)
 incr             x (Rec pf e0 e)             = Rec pf (incr (fincr x FZ) e0) (incr x e)
 incr             x (Unfold pf e)             = Unfold pf (incr x e)
@@ -56,7 +56,7 @@ subst x (Proj d e)         v = Proj d (subst x e v)
 subst x (Abort e)          v = Abort (subst x e v)
 subst x (Inj d e)          v = Inj d (subst x e v)
 subst x (Case e el er)     v = Case (subst x e v) (subst (fincr x FZ) el (incr FZ v)) (subst (fincr x FZ) er (incr FZ v))
-subst x (Map tv t pf e0 e) v = Map tv t pf (subst (fincr x FZ) e0 (incr FZ v)) (subst x e v)
+subst x (Map t pf e0 e)    v = Map t pf (subst (fincr x FZ) e0 (incr FZ v)) (subst x e v)
 subst x (Fold pf e)        v = Fold pf (subst x e v)
 subst x (Rec pf e0 e)      v = Rec pf (subst (fincr x FZ) e0 (incr FZ v)) (subst x e v)
 subst x (Unfold pf e)      v = Unfold pf (subst x e v)
