@@ -64,4 +64,8 @@ mapInsertAt : {A B : Set} {n : nat} (as : vect A n) (a : A) (f : A -> B) (x : fi
 mapInsertAt []        b f FZ      = Refl
 mapInsertAt []        b f (FS ())
 mapInsertAt (a :: as) b f FZ      = Refl
-mapInsertAt (a :: as) b f (FS x)  = funEq (λ bs -> f a :: bs) (mapInsertAt as b f x)
+mapInsertAt (a :: as) b f (FS x)  rewrite mapInsertAt as b f x = Refl
+
+mapMap : {A B C : Set} {n : nat} (as : vect A n) (f : A -> B) (g : B -> C) -> map g (map f as) == map (λ x -> g (f x)) as
+mapMap []        f g = Refl
+mapMap (x :: as) f g rewrite mapMap as f g = Refl

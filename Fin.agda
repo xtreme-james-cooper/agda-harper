@@ -81,6 +81,10 @@ data _>=F_ : {n : nat} -> fin n -> fin n -> Set where
 >=FRefl {Suc n} {FZ}   = Z>=Z
 >=FRefl {Suc n} {FS x} = S>=S >=FRefl
 
+>=FZ : {n : nat} {x : fin (Suc n)} -> x >=F FZ
+>=FZ {n} {FZ}   = Z>=Z
+>=FZ {n} {FS x} = S>=Z
+
 finComp : {n : nat} (x y : fin n) -> decide (x >=F y)
 finComp FZ     FZ     = Yes Z>=Z
 finComp FZ     (FS y) = No (λ ())

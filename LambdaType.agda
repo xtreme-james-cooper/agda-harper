@@ -49,9 +49,3 @@ tsubstIncr t1 (TyVar tv)   x      y gt | No neq | No neq2  rewrite fincrFdecrSwa
 tsubstIncr t1 (t21 => t22) x      y gt rewrite tsubstIncr t1 t21 x y gt | tsubstIncr t1 t22 x y gt = Refl
 tsubstIncr t1 (Forall t2)  FZ     y gt rewrite tincrSwap t1 FZ FZ Z>=Z | tsubstIncr (tincr FZ t1) t2 (FS FZ) (FS y) (S>=S gt) = Refl
 tsubstIncr t1 (Forall t2)  (FS x) y gt rewrite tincrSwap t1 (FS x) FZ S>=Z | tsubstIncr (tincr FZ t1) t2 (FS (FS x)) (FS y) (S>=S gt) = Refl
-
---tsubstSwap : {tn : nat} (y : fin tn) (x : fin (Suc tn)) (pf : fle y x) (t1 : type (Suc (Suc tn))) (t2 : type (Suc tn)) (t3 : type tn) -> 
---  tsubst FZ (tsubst x t3 t2) (tsubst (FS x) (tincr FZ t3) t1) == tsubst x t3 (tsubst FZ t2 t1)
---tsubstSwap y x pf (TyVar z)    t2 t3 = {!!}
---tsubstSwap y x pf (t11 => t12) t2 t3 rewrite tsubstSwap y x pf t11 t2 t3 | tsubstSwap y x pf t12 t2 t3 = Refl
---tsubstSwap y x pf (Forall t1)  t2 t3 = {!!}

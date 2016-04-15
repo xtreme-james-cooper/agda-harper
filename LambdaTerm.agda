@@ -13,26 +13,26 @@ data lam {n tn : nat} (gam : vect (type tn) n) : type tn -> Set where
   TAbs : {t : type (Suc tn)} {gam' : vect (type (Suc tn)) n} -> lam gam' t -> map (tincr FZ) gam == gam' -> lam gam (Forall t)
 
 teincr : {n tn : nat} {t : type tn} {gam : vect (type tn) n} (x : fin (Suc tn)) -> lam gam t -> lam (map (tincr x) gam) (tincr x t)
-teincr {gam = gam} x (Var y Refl)    = Var y (mapLookup (tincr x) gam y)
-teincr             x (App e1 e2)     = App (teincr x e1) (teincr x e2)
-teincr             x (Abs e)         = Abs (teincr x e)
-teincr             x (TApp e t Refl) = TApp (teincr x e) (tincr x t) (tsubstIncr t _ x FZ {!!})
-teincr             x (TAbs e pf)     = TAbs (teincr (FS x) e) {!!}
+teincr {gam = gam} x (Var y Refl)         = Var y (mapLookup (tincr x) gam y)
+teincr             x (App e1 e2)          = App (teincr x e1) (teincr x e2)
+teincr             x (Abs e)              = Abs (teincr x e)
+teincr             x (TApp {t1} e t Refl) = TApp (teincr x e) (tincr x t) (tsubstIncr t t1 x FZ >=FZ)
+teincr {gam = gam} x (TAbs e pf)          = TAbs (teincr (FS x) e) {!!}
 
 tesubst : {n tn : nat} {t1 : type (Suc tn)} {gam : vect (type (Suc tn)) n} (x : fin (Suc tn)) -> lam gam t1 -> (t2 : type tn) -> 
   lam (map (tsubst x t2) gam) (tsubst x t2 t1)
 tesubst {gam = gam} x (Var y Refl) t2 = Var y (mapLookup (tsubst x t2) gam y)
 tesubst             x (App e1 e2)  t2 = App (tesubst x e1 t2) (tesubst x e2 t2)
 tesubst             x (Abs e)      t2 = Abs (tesubst x e t2)
-tesubst {n} {tn} {.(tsubst FZ t t1)} {gam} x (TApp {t1} e t Refl)   t2 = TApp {t1 = {!!}} {!!} (tsubst x t2 t) {!!}
-tesubst             x (TAbs e pf)  t2 = TAbs {!!} {!!}
+tesubst {n} {tn} {.(tsubst FZ t t1)} {gam} x (TApp {t1} e t Refl)   t2 = TApp {t1 = t} (tesubst {n} {tn} {{!!}} {gam} x {!!} t2) (tsubst x t2 t) {!!}
+tesubst             x (TAbs {t} {gam'} e pf)  t2 = TAbs {t = tsubst (FS x) (tincr FZ t2) t} {{!!}} {!!} {!!}
 
 incr : {n tn : nat} {gam : vect (type tn) n} {t1 t2 : type tn} (x : fin (Suc n)) -> lam gam t2 -> lam (insertAt x gam t1) t2
-incr {gam = gam} x (Var y Refl)  = Var (fincr y x) (insertAtFincr gam y x _)
-incr             x (App e1 e2)   = App (incr x e1) (incr x e2)
-incr             x (Abs e)       = Abs (incr (FS x) e)
-incr             x (TApp e t pf) = TApp (incr x e) t pf
-incr {gam = gam} x (TAbs e pf)   = TAbs (incr {!!} {!!}) {!!}
+incr {gam = gam} x (Var y Refl)   = Var (fincr y x) (insertAtFincr gam y x _)
+incr             x (App e1 e2)    = App (incr x e1) (incr x e2)
+incr             x (Abs e)        = Abs (incr (FS x) e)
+incr             x (TApp e t pf)  = TApp (incr x e) t pf
+incr {n} {tn} {gam} x (TAbs e pf) = TAbs (incr {n} {Suc tn} {{!!}} {{!!}} x {!!}) {!!}
 
 subst : {n tn : nat} {gam : vect (type tn) n} {t1 t2 : type tn} (x : fin (Suc n)) -> lam (insertAt x gam t1) t2 -> lam gam t1 -> lam gam t2
 subst                       x (Var y pf)    v with finEq y x
