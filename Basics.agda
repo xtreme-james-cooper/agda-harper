@@ -16,8 +16,8 @@ data _==_ {i : Level} {A : Set i} (a : A) : A -> Set i where
 {-# BUILTIN EQUALITY _==_ #-}
 {-# BUILTIN REFL Refl #-}
 
-flip : {A : Set} {a b : A} -> a == b -> b == a
-flip Refl = Refl
+sym : {A : Set} {a b : A} -> a == b -> b == a
+sym Refl = Refl
 
 funEq : {i j : Level} {A : Set i} {B : Set j} {a b : A} (f : A -> B) -> a == b -> f a == f b
 funEq f Refl = Refl
@@ -147,6 +147,10 @@ neqToNeq' {Suc n} {FS x} {FZ}   npf = SNeqZ
 neqToNeq' {Suc n} {FS x} {FS y} npf with neqToNeq' (neqFS_backwards x y npf)
 neqToNeq' {Suc n} {FS x} {FS y} npf | pf = SNeqS pf
 
+weaken : {n : nat} -> fin n -> fin (Suc n)
+weaken FZ = FZ
+weaken (FS x) = FS (weaken x)
+
 fincr : {n : nat} -> fin n -> fin (Suc n) -> fin (Suc n)
 fincr x      FZ     = FS x
 fincr FZ     (FS y) = FZ
@@ -160,6 +164,17 @@ fdecr {Zero}  (FS ()) y       npf
 fdecr {Suc n} FZ      (FS y)  npf = FZ
 fdecr {Suc n} (FS x)  FZ      npf = x
 fdecr {Suc n} (FS x)  (FS y)  npf = FS (fdecr x y (neqFS_backwards x y npf))
+
+data _>F_ : {n : nat} -> fin n -> fin n -> Set where
+  S>Z : {n : nat} {x : fin n} -> FS x >F FZ
+  S>S : {n : nat} {x y : fin n} -> x >F y -> FS x >F FS y
+
+fincrSwap : {tn : nat} (t : fin tn) (x y : fin (Suc tn)) -> x >F y -> fincr (fincr t x) (weaken y) == fincr (fincr t y) (FS x)
+fincrSwap t      FZ     FZ     gt       = Refl
+fincrSwap t      FZ     (FS y) ()
+fincrSwap t      (FS x) FZ     gt       = Refl
+fincrSwap FZ     (FS x) (FS y) (S>S gt) = Refl
+fincrSwap (FS t) (FS x) (FS y) (S>S gt) rewrite fincrSwap t x y gt = Refl
 
 data vect (A : Set) : nat -> Set where
   [] : vect A Zero
