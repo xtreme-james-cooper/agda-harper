@@ -1,6 +1,7 @@
 module LambdaType where
 
 open import Basics
+open import Fin
 
 data type (tn : nat) : Set where
   TyVar : fin tn -> type tn
