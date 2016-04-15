@@ -1,6 +1,8 @@
 module LambdaTerm where
 
 open import Basics
+open import Fin
+open import Vect
 open import LambdaType
 
 data lam {n tn : nat} (gam : vect (type tn) n) : type tn -> Set where
@@ -14,7 +16,7 @@ teincr : {n tn : nat} {t : type tn} {gam : vect (type tn) n} (x : fin (Suc tn)) 
 teincr {gam = gam} x (Var y Refl)    = Var y (mapLookup (tincr x) gam y)
 teincr             x (App e1 e2)     = App (teincr x e1) (teincr x e2)
 teincr             x (Abs e)         = Abs (teincr x e)
-teincr             x (TApp e t Refl) = TApp (teincr x e) (tincr x t) {!!} 
+teincr             x (TApp e t Refl) = TApp (teincr x e) (tincr x t) (tsubstIncr t _ x FZ {!!})
 teincr             x (TAbs e pf)     = TAbs (teincr (FS x) e) {!!}
 
 tesubst : {n tn : nat} {t1 : type (Suc tn)} {gam : vect (type (Suc tn)) n} (x : fin (Suc tn)) -> lam gam t1 -> (t2 : type tn) -> 

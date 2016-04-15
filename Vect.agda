@@ -50,7 +50,7 @@ insertAtFdecr {A} {.Zero} {[]}      {FZ}    {FS ()} npf Refl
 insertAtFdecr {A} {.Zero} {[]}      {FS ()} {y}     npf Refl
 insertAtFdecr {A} {Suc n} {v :: vs} {FZ}    {FS y}  npf Refl = Refl
 insertAtFdecr {A} {Suc n} {v :: vs} {FS x}  {FZ}    npf Refl = Refl
-insertAtFdecr {A} {Suc n} {v :: vs} {FS x}  {FS y}  npf Refl = insertAtFdecr (neqFSBackwards y x npf) Refl
+insertAtFdecr {A} {Suc n} {v :: vs} {FS x}  {FS y}  npf Refl = insertAtFdecr (neqFSBackwards npf) Refl
 
 map : {A B : Set} {n : nat} -> (A -> B) -> vect A n -> vect B n
 map f []        = []
