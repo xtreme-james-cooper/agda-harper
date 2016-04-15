@@ -33,7 +33,7 @@ incr             x (TApp e t pf) = TApp (incr x e) t pf
 incr {gam = gam} x (TAbs e pf)   = TAbs (incr {!!} {!!}) {!!}
 
 subst : {n tn : nat} {gam : vect (type tn) n} {t1 t2 : type tn} (x : fin (Suc n)) -> lam (insertAt x gam t1) t2 -> lam gam t1 -> lam gam t2
-subst                       x (Var y pf)    v with fin_eq y x
+subst                       x (Var y pf)    v with finEq y x
 subst {gam = gam} {t1 = t1} x (Var .x Refl) v | Yes Refl rewrite lookupInsertAt gam x t1 = v
 subst                       x (Var y pf)    v | No npf   = Var (fdecr y x npf) (insertAtFdecr npf pf)
 subst                       x (App e1 e2)   v = App (subst x e1 v) (subst x e2 v)
