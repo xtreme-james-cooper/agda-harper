@@ -13,6 +13,9 @@ eqFSBackwards {n} {x} {.x} Refl = Refl
 neqFSBackwards : {n : nat} {x y : fin n} -> not (FS x == FS y) -> not (x == y)
 neqFSBackwards {n} {x} {.x} npf Refl = npf Refl
 
+neqFS : {n : nat} {x y : fin n} -> not (x == y) -> not (FS x == FS y)
+neqFS npf Refl = npf Refl
+
 finEq : {n : nat} (x y : fin n) -> equals? x y
 finEq FZ FZ          = Yes Refl
 finEq FZ (FS y)      = No (λ ())
@@ -20,10 +23,7 @@ finEq (FS x) FZ      = No (λ ())
 finEq (FS x) (FS y)  with finEq x y
 finEq (FS x) (FS .x) | Yes Refl = Yes Refl
 finEq (FS x) (FS y)  | No npf   = No (neqFS npf)
-  where
-    neqFS : {n : nat} {x y : fin n} -> not (x == y) -> not (FS x == FS y)
-    neqFS npf Refl = npf Refl
-
+  
 data finNeq : {n : nat} -> fin n -> fin n -> Set where
   ZNeqS : {n : nat} {f : fin n} -> finNeq FZ (FS f)
   SNeqZ : {n : nat} {f : fin n} -> finNeq (FS f) FZ
@@ -119,6 +119,16 @@ fincrFdecrSwap {Suc tn} x       FZ      (FS z)  neq neq2 gt = Refl
 fincrFdecrSwap {tn}     FZ      (FS y)  (FS z)  neq neq2 ()
 fincrFdecrSwap {Zero}   (FS ()) (FS y)  (FS z)  neq neq2 gt
 fincrFdecrSwap {Suc tn} (FS x)  (FS y)  (FS z)  neq neq2 (S>=S gt) rewrite fincrFdecrSwap x y z (neqFSBackwards neq) (neqFSBackwards neq2) gt = Refl
+
+fdecrFincrSwap : {tn : nat} (x y z : fin (Suc tn)) (neq : not (fincr z (weaken x) == FS y)) (neq2 : not (z == y)) -> y >=F x ->
+  fdecr (fincr z (weaken x)) (FS y) neq == fincr (fdecr z y neq2) x
+fdecrFincrSwap {tn}     FZ      y       z       neq neq2 lt = Refl
+fdecrFincrSwap {tn}     (FS x)  FZ      FZ      neq neq2 lt with neq2 Refl
+fdecrFincrSwap {tn}     (FS x)  FZ      FZ      neq neq2 lt | ()
+fdecrFincrSwap {tn}     (FS x)  FZ      (FS z)  neq neq2 ()
+fdecrFincrSwap {Zero}   (FS ()) (FS y)  x       neq neq2 lt
+fdecrFincrSwap {Suc tn} (FS x)  (FS y)  FZ      neq neq2 lt = Refl
+fdecrFincrSwap {Suc tn} (FS x)  (FS y)  (FS z)  neq neq2 (S>=S lt) rewrite fdecrFincrSwap x y z (neqFSBackwards neq) (neqFSBackwards neq2) lt = Refl
 
 fincrSwap : {tn : nat} (t : fin tn) (x y : fin (Suc tn)) -> x >=F y -> fincr (fincr t x) (weaken y) == fincr (fincr t y) (FS x)
 fincrSwap t      FZ     FZ     gt        = Refl

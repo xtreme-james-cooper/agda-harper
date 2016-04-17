@@ -25,12 +25,16 @@ teincr {gam = gam} x (TAbs e Refl)        = TAbs (teincr (FS x) e) (teincrLemma 
 
 tesubst : {n tn : nat} {t1 : type (Suc tn)} {gam : vect (type (Suc tn)) n} (x : fin (Suc tn)) (t2 : type tn) -> lam gam t1 -> 
   lam (map (tsubst x t2) gam) (tsubst x t2 t1)
-tesubst {gam = gam} x t2 (Var y Refl) = Var y (mapLookup (tsubst x t2) gam y)
-tesubst             x t2 (App e1 e2)  = App (tesubst x t2 e1) (tesubst x t2 e2)
-tesubst             x t2 (Abs e)      = Abs (tesubst x t2 e)
-tesubst {n} {tn} {.(tsubst FZ t t1)} {gam} x t2 (TApp {t1} e t {.(tsubst FZ t t1)} Refl) = 
-  TApp {t1 = t} (tesubst {n} {tn} {{!!}} {gam} x t2 {!!}) (tsubst x t2 t) {tsubst x t2 (tsubst FZ t t1)} {!!}
-tesubst {gam = gam} x t2 (TAbs {t} {.(map (tincr FZ) gam)} e Refl) = TAbs (tesubst (FS x) (tincr FZ t2) e) {!!}
+tesubst {gam = gam} x t2 (Var y Refl)         = Var y (mapLookup (tsubst x t2) gam y)
+tesubst             x t2 (App e1 e2)          = App (tesubst x t2 e1) (tesubst x t2 e2)
+tesubst             x t2 (Abs e)              = Abs (tesubst x t2 e)
+tesubst {gam = gam} x t2 (TApp {t1} e t Refl) = TApp (tesubst x t2 e) (tsubst x t2 t) {!!}
+tesubst {gam = gam} x t2 (TAbs {t} e Refl)    = TAbs (tesubst (FS x) (tincr FZ t2) e) (tesubstLemma x t2 gam)
+  where
+    tesubstLemma : {n tn : nat} (x : fin (Suc tn)) (t : type tn) (gam : vect (type (Suc tn)) n) -> 
+      map (tincr FZ) (map (tsubst x t) gam) == map (tsubst (FS x) (tincr FZ t)) (map (tincr FZ) gam)
+    tesubstLemma x t []          = Refl
+    tesubstLemma x t (t1 :: gam) rewrite tesubstLemma x t gam = {!!}
 
 incr : {n tn : nat} {gam : vect (type tn) n} {t1 t2 : type tn} (x : fin (Suc n)) -> lam gam t2 -> lam (insertAt x gam t1) t2
 incr {gam = gam} x (Var y Refl)   = Var (fincr y x) (insertAtFincr gam y x _)
