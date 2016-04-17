@@ -37,7 +37,7 @@ tesubst {gam = gam} x t2 (TAbs {t} e Refl)    = TAbs (tesubst (FS x) (tincr FZ t
     tesubstLemma x t (t1 :: gam) rewrite tesubstLemma x t gam = {!!}
 
 incr : {n tn : nat} {gam : vect (type tn) n} {t1 t2 : type tn} (x : fin (Suc n)) -> lam gam t2 -> lam (insertAt x gam t1) t2
-incr {gam = gam} x (Var y Refl)   = Var (fincr y x) (insertAtFincr gam y x _)
+incr {gam = gam} x (Var y Refl)   = Var (fincr x y) (insertAtFincr gam y x _)
 incr             x (App e1 e2)    = App (incr x e1) (incr x e2)
 incr             x (Abs e)        = Abs (incr (FS x) e)
 incr             x (TApp e t pf)  = TApp (incr x e) t pf
@@ -46,9 +46,9 @@ incr {n} {tn} {gam} {t1} x (TAbs {t} e Refl) = TAbs (incr {n} {Suc tn} {map (tin
 subst : {n tn : nat} {gam : vect (type tn) n} {t1 t2 : type tn} (x : fin (Suc n)) -> lam (insertAt x gam t1) t2 -> lam gam t1 -> lam gam t2
 subst                       x (Var y pf)    v with finEq y x
 subst {gam = gam} {t1 = t1} x (Var .x Refl) v | Yes Refl rewrite lookupInsertAt gam x t1 = v
-subst                       x (Var y pf)    v | No npf   = Var (fdecr y x npf) (insertAtFdecr npf pf)
+subst                       x (Var y pf)    v | No npf   = Var (fdecr x y npf) (insertAtFdecr npf pf)
 subst                       x (App e1 e2)   v = App (subst x e1 v) (subst x e2 v)
-subst                       x (Abs e)       v = Abs (subst (fincr x FZ) e (incr FZ v))
+subst                       x (Abs e)       v = Abs (subst (fincr FZ x) e (incr FZ v))
 subst                       x (TApp e t pf) v = TApp (subst x e v) t pf
 subst {n} {tn} {gam} {t1}   x (TAbs {t} {.(map (tincr FZ) (insertAt x gam t1))} e Refl) v rewrite mapInsertAt gam t1 (tincr FZ) x = 
   TAbs (subst {gam = map (tincr FZ) gam} {tincr FZ t1} x e (teincr FZ v)) Refl

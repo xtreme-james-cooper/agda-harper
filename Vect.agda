@@ -37,13 +37,13 @@ lookupInsertAt vs        FZ      v = Refl
 lookupInsertAt []        (FS ()) v
 lookupInsertAt (x :: vs) (FS y)  v = lookupInsertAt vs y v
 
-insertAtFincr : {A : Set} {n : nat} (gam : vect A n) (x : fin n) (y : fin (Suc n)) (a : A) -> (insertAt y gam a ! fincr x y) == (gam ! x)
+insertAtFincr : {A : Set} {n : nat} (gam : vect A n) (x : fin n) (y : fin (Suc n)) (a : A) -> (insertAt y gam a ! fincr y x) == (gam ! x)
 insertAtFincr (b :: gam) FZ     FZ     a = Refl
 insertAtFincr (b :: gam) FZ     (FS y) a = Refl
 insertAtFincr (b :: gam) (FS x) FZ     a = Refl
 insertAtFincr (b :: gam) (FS x) (FS y) a = insertAtFincr gam x y a
 
-insertAtFdecr : {A : Set} {n : nat} {vs : vect A n} {x y : fin (Suc n)} {a b : A} -> (npf : not (y == x)) -> (insertAt x vs a ! y) == b -> (vs ! fdecr y x npf) == b
+insertAtFdecr : {A : Set} {n : nat} {vs : vect A n} {x y : fin (Suc n)} {a b : A} -> (npf : not (y == x)) -> (insertAt x vs a ! y) == b -> (vs ! fdecr x y npf) == b
 insertAtFdecr {A} {n}     {vs}      {FZ}    {FZ}    npf Refl with npf Refl
 insertAtFdecr {A} {n}     {vs}      {FZ}    {FZ}    npf Refl | ()
 insertAtFdecr {A} {.Zero} {[]}      {FZ}    {FS ()} npf Refl

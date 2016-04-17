@@ -9,7 +9,7 @@ data type (tn : nat) : Set where
   Forall : type (Suc tn) -> type tn
 
 tincr : {tn : nat} -> fin (Suc tn) -> type tn -> type (Suc tn)
-tincr x (TyVar y) = TyVar (fincr y x)
+tincr x (TyVar y) = TyVar (fincr x y)
 tincr x (t1 => t2) = tincr x t1 => tincr x t2
 tincr x (Forall t) = Forall (tincr (FS x) t)
 
@@ -21,7 +21,7 @@ tincrSwap (Forall t) x y gt rewrite tincrSwap t (FS x) (FS y) (S>=S gt) = Refl
 tsubst : {tn : nat} -> fin (Suc tn) -> type tn -> type (Suc tn) -> type tn
 tsubst tv v (TyVar tv') with finEq tv' tv
 tsubst tv v (TyVar tv') | Yes pf = v
-tsubst tv v (TyVar tv') | No npf = TyVar (fdecr tv' tv npf)
+tsubst tv v (TyVar tv') | No npf = TyVar (fdecr tv tv' npf)
 tsubst tv v (t1 => t2)  = tsubst tv v t1 => tsubst tv v t2
 tsubst tv v (Forall t)  = Forall (tsubst (FS tv) (tincr FZ v) t)
 
@@ -32,7 +32,7 @@ tSubstIncrLemma (S>=S gt) eq with tSubstIncrLemma gt (eqFSBackwards eq)
 tSubstIncrLemma (S>=S gt) eq | ()
 
 tsubstIncr : {tn : nat} (t1 : type tn) (t2 : type (Suc tn)) (x y : fin (Suc tn)) -> x >=F y -> tsubst (weaken y) (tincr x t1) (tincr (FS x) t2) == tincr x (tsubst y t1 t2)
-tsubstIncr t1 (TyVar tv)   x      y gt with finEq (fincr tv (FS x)) (weaken y) | finEq tv y
+tsubstIncr t1 (TyVar tv)   x      y gt with finEq (fincr (FS x) tv) (weaken y) | finEq tv y
 tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | Yes eq2  = Refl
 tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   with finComp x tv
 tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   | Yes gt2 rewrite fincrAbove x tv gt2 with neq (weakenEq eq)
@@ -52,7 +52,7 @@ tsubstIncr t1 (Forall t2)  (FS x) y gt rewrite tincrSwap t1 (FS x) FZ S>=Z | tsu
 
 tincrSubst : {tn : nat} (t1 : type tn) (t2 : type (Suc tn)) (x y : fin (Suc tn)) -> y >=F x -> not (y == x) -> 
   tsubst (FS y) (tincr x t1) (tincr (weaken x) t2) == tincr x (tsubst y t1 t2)
-tincrSubst t1 (TyVar tv)   x y lt neq with finEq (fincr tv (weaken x)) (FS y) | finEq tv y 
+tincrSubst t1 (TyVar tv)   x y lt neq with finEq (fincr (weaken x) tv) (FS y) | finEq tv y 
 tincrSubst t1 (TyVar tv)   x y lt neq | Yes eq  | Yes eq2 = Refl
 tincrSubst t1 (TyVar tv)   x y lt neq | Yes eq  | No neq2 = {!!}
 tincrSubst t1 (TyVar .y)   x y lt neq | No neq2 | Yes Refl = {!!}
