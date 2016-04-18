@@ -62,6 +62,11 @@ fincr FZ     x      = FS x
 fincr (FS y) FZ     = FZ
 fincr (FS y) (FS x) = FS (fincr y x)
 
+fincrNeq : {n : nat} (x : fin (Suc n)) (y : fin n) -> not (fincr x y == x)
+fincrNeq FZ     y      ()
+fincrNeq (FS x) FZ     ()
+fincrNeq (FS x) (FS y) pf = fincrNeq x y (eqFSBackwards pf)
+
 fdecr : {n : nat} (x y : fin (Suc n)) -> not (y == x) -> fin n
 fdecr {n}     FZ      FZ      npf with npf Refl
 fdecr {n}     FZ      FZ      npf | ()
@@ -141,6 +146,12 @@ fdecrFincrSwap {Zero}   (FS ()) (FS y)  x       neq neq2 lt
 fdecrFincrSwap {Suc tn} (FS x)  (FS y)  FZ      neq neq2 lt = Refl
 fdecrFincrSwap {Suc tn} (FS x)  (FS y)  (FS z)  neq neq2 (S>=S lt) rewrite fdecrFincrSwap x y z (neqFSBackwards neq) (neqFSBackwards neq2) lt = Refl
 
+fdecrFincrRefl : {tn : nat} (x : fin (Suc tn)) (y : fin tn) (neq : not (fincr x y == x)) -> fdecr x (fincr x y) neq == y
+fdecrFincrRefl FZ     FZ     neq = Refl
+fdecrFincrRefl FZ     (FS y) neq = Refl
+fdecrFincrRefl (FS x) FZ     neq = Refl
+fdecrFincrRefl (FS x) (FS y) neq rewrite fdecrFincrRefl x y (neqFSBackwards neq) = Refl
+
 fincrSwap : {tn : nat} (t : fin tn) (x y : fin (Suc tn)) -> x >=F y -> fincr (weaken y) (fincr x t) == fincr (FS x) (fincr y t) 
 fincrSwap t      FZ     FZ     gt        = Refl
 fincrSwap t      FZ     (FS y) ()
@@ -170,3 +181,7 @@ fincrBelow' FZ     FZ     Z>=Z      = Refl
 fincrBelow' FZ     (FS y) S>=Z      = Refl
 fincrBelow' (FS x) (FS y) (S>=S gt) rewrite fincrBelow' x y gt = Refl
 
+fdecrBelow' : {n : nat} (x y : fin n) (neq : not (FS x == weaken y)) -> x >=F y -> fdecr (weaken y) (FS x) neq == x
+fdecrBelow' x      FZ     neq gt = Refl
+fdecrBelow' FZ     (FS y) neq ()
+fdecrBelow' (FS x) (FS y) neq (S>=S gt) rewrite fdecrBelow' x y (neqFSBackwards neq) gt = Refl
