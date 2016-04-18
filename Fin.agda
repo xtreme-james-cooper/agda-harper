@@ -84,13 +84,19 @@ data _>=F_ : {n : nat} -> fin n -> fin n -> Set where
 >=FZ {n} {FZ}   = Z>=Z
 >=FZ {n} {FS x} = S>=Z
 
-finComp : {n : nat} (x y : fin n) -> decide (x >=F y)
-finComp FZ     FZ     = Yes Z>=Z
-finComp FZ     (FS y) = No (λ ())
-finComp (FS x) FZ     = Yes S>=Z
-finComp (FS x) (FS y) with finComp x y 
-finComp (FS x) (FS y) | Yes gt = Yes (S>=S gt)
-finComp (FS x) (FS y) | No ngt = No (λ { (S>=S gt) -> ngt gt })
+data _comp_ {n : nat} (x y : fin n) : Set where
+  GT : x >=F y -> not (x == y) -> x comp y
+  EQ : x == y -> x comp y
+  LT : y >=F x -> not (x == y) -> x comp y
+
+finComp : {n : nat} (x y : fin n) -> x comp y
+finComp FZ     FZ      = EQ Refl
+finComp FZ     (FS y)  = LT S>=Z (λ ())
+finComp (FS x) FZ      = GT S>=Z (λ ())
+finComp (FS x) (FS y)  with finComp x y 
+finComp (FS x) (FS y)  | GT gt neq = GT (S>=S gt) (neqFS neq)
+finComp (FS x) (FS .x) | EQ Refl   = EQ Refl
+finComp (FS x) (FS y)  | LT lt neq = LT (S>=S lt) (neqFS neq)
 
 finTric : {n : nat} (x y : fin n) -> not (x >=F y) -> not (y == x) -> y >=F x
 finTric FZ     FZ     ngt neq with neq Refl
@@ -100,6 +106,12 @@ finTric (FS x) FZ     ngt neq with ngt S>=Z
 finTric (FS x) FZ     ngt neq | ()
 finTric (FS x) (FS y) ngt neq with finTric x y (λ gt -> ngt (S>=S gt)) (neqFSBackwards neq)
 finTric (FS x) (FS y) ngt neq | lt = S>=S lt
+
+finTric' : {n : nat} (x y : fin n) -> x >=F y -> not (y == x) -> not (y >=F x)
+finTric' FZ     FZ     gt        neq pf        = neq Refl
+finTric' FZ     (FS y) ()        neq pf
+finTric' (FS x) FZ     gt        neq ()
+finTric' (FS x) (FS y) (S>=S gt) neq (S>=S pf) = finTric' x y gt (neqFSBackwards neq) pf
 
 fgtTrans : {n : nat} (x y z : fin n) -> x >=F y -> y >=F z -> x >=F z
 fgtTrans x      FZ     FZ     gt1        Z>=Z       = gt1
@@ -141,9 +153,20 @@ fincrAbove FZ     FZ     Z>=Z      = Refl
 fincrAbove (FS x) FZ     S>=Z      = Refl
 fincrAbove (FS x) (FS y) (S>=S gt) rewrite fincrAbove x y gt = Refl
 
+fincrAbove' : {n : nat} (x y : fin n) -> x >=F y -> not (y == x) -> fincr (weaken x) y == weaken y
+fincrAbove' FZ     FZ     Z>=Z      neq with neq Refl
+fincrAbove' FZ     FZ     Z>=Z      neq | ()
+fincrAbove' (FS x) FZ     S>=Z      neq = Refl
+fincrAbove' (FS x) (FS y) (S>=S gt) neq rewrite fincrAbove' x y gt (neqFSBackwards neq) = Refl
+
 fincrBelow : {n : nat} (x y : fin n) -> y >=F x -> not (y == x) -> fincr (FS x) y == FS y
 fincrBelow FZ     FZ     Z>=Z      neq with neq Refl
 fincrBelow FZ     FZ     Z>=Z      neq | ()
 fincrBelow FZ     (FS y) S>=Z      neq = Refl
 fincrBelow (FS x) (FS y) (S>=S gt) neq rewrite fincrBelow x y gt (neqFSBackwards neq) = Refl
+
+fincrBelow' : {n : nat} (x y : fin n) -> y >=F x -> fincr (weaken x) y == FS y
+fincrBelow' FZ     FZ     Z>=Z      = Refl
+fincrBelow' FZ     (FS y) S>=Z      = Refl
+fincrBelow' (FS x) (FS y) (S>=S gt) rewrite fincrBelow' x y gt = Refl
 
