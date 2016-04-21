@@ -1,6 +1,8 @@
 module LambdaEval where
 
 open import Basics
+open import Fin
+open import Vect
 open import LambdaType
 open import LambdaTerm
 
@@ -25,6 +27,6 @@ evaluate (App .(Abs e1)    e2)      | InL (AbsVal e1) | InR (e2' , ev) = InR (Ap
 evaluate (App e1           e2)      | InR (e1' , ev)  = InR (App e1' e2 , EvalApp1 ev)
 evaluate (Abs e)                    = InL (AbsVal e)
 evaluate (TApp e t pf)              with evaluate e
-evaluate (TApp .(TAbs e pf) t pf2)  | InL (TAbsVal e pf) = {!!}
-evaluate (TApp e t pf)              | InR (e' , ev) = InR (TApp e' t pf , EvalTApp1 ev)
+evaluate (TApp .(TAbs e pf) t pf2)  | InL (TAbsVal e pf) = InR (tesubst FZ t e , EvalTApp1)
+evaluate (TApp e t pf)              | InR (e' , ev)      = InR (TApp e' t pf , EvalTApp1 ev)
 evaluate (TAbs e pf)                = InL (TAbsVal e pf)

@@ -188,7 +188,7 @@ fdecrPfIrrel {Zero} x (FS ()) neq neq2
 fdecrPfIrrel {Zero} (FS ()) y neq neq2
 fdecrPfIrrel {Suc n} FZ (FS y) neq neq2 = Refl
 fdecrPfIrrel {Suc n} (FS x) FZ neq neq2 = Refl
-fdecrPfIrrel {Suc n} (FS x) (FS y) neq neq2 = {!!}
+fdecrPfIrrel {Suc n} (FS x) (FS y) neq neq2 = funEq FS (fdecrPfIrrel x y (neqFSBackwards neq) (neqFSBackwards neq2))
 
 fdecrSwap : {n : nat} (x y : fin (Suc n)) (z : fin (Suc (Suc n))) (neq : not (z == FS x)) (neq2 : not (z == weaken y)) 
   (neq3 : not (fdecr (FS x) z neq == y)) (neq4 : not (fdecr (weaken y) z neq2 == x)) -> x >=F y -> 
@@ -198,12 +198,12 @@ fdecrSwap {n} FZ FZ FZ neq neq2 neq3 neq4 Z>=Z | ()
 fdecrSwap {Zero} FZ FZ (FS FZ) neq neq2 neq3 neq4 Z>=Z with neq Refl
 fdecrSwap {Zero} FZ FZ (FS FZ) neq neq2 neq3 neq4 Z>=Z | ()
 fdecrSwap {Zero} FZ FZ (FS (FS ())) neq neq2 neq3 neq4 Z>=Z
-fdecrSwap {Suc n} FZ FZ (FS z) neq neq2 neq3 neq4 Z>=Z = {!!} {- pf irrel -}
+fdecrSwap {Suc n} FZ FZ (FS z) neq neq2 neq3 neq4 Z>=Z = fdecrPfIrrel FZ z (neqFSBackwards neq) neq4
 fdecrSwap {n} (FS x) FZ FZ neq neq2 neq3 neq4 S>=Z with neq2 Refl
 fdecrSwap {n} (FS x) FZ FZ neq neq2 neq3 neq4 S>=Z | ()
 fdecrSwap {Zero} (FS ()) FZ (FS FZ) neq neq2 neq3 neq4 S>=Z
 fdecrSwap {Zero} (FS x) FZ (FS (FS ())) neq neq2 neq3 neq4 S>=Z
-fdecrSwap {Suc n} (FS x) FZ (FS z) neq neq2 neq3 neq4 S>=Z = {!!} {- pf irrel -}
+fdecrSwap {Suc n} (FS x) FZ (FS z) neq neq2 neq3 neq4 S>=Z = fdecrPfIrrel (FS x) z (neqFSBackwards neq) neq4
 fdecrSwap {Zero} (FS ()) (FS y) FZ neq neq2 neq3 neq4 (S>=S gt)
 fdecrSwap {Suc n} (FS x) (FS y) FZ neq neq2 neq3 neq4 (S>=S gt) = Refl
 fdecrSwap {Zero} (FS ()) (FS y) (FS z) neq neq2 neq3 neq4 (S>=S gt)
