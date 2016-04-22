@@ -28,7 +28,7 @@ tsubst tv v (Forall t)  = Forall (tsubst (FS tv) (tincr FZ v) t)
 tSubstIncrLemma : {n : nat} {y x : fin n} -> x >=F y -> not (FS x == weaken y)
 tSubstIncrLemma Z>=Z      ()
 tSubstIncrLemma S>=Z      ()
-tSubstIncrLemma (S>=S gt) eq with tSubstIncrLemma gt (eqFSBackwards eq) 
+tSubstIncrLemma (S>=S gt) eq with tSubstIncrLemma gt (eqFS eq) 
 tSubstIncrLemma (S>=S gt) eq | ()
 
 tsubstIncr : {tn : nat} (t1 : type tn) (t2 : type (Suc tn)) (x y : fin (Suc tn)) -> x >=F y ->
@@ -42,7 +42,7 @@ tsubstIncr t1 (TyVar .x)   x      y gt | Yes eq | No neq   | EQ Refl     rewrite
 tsubstIncr t1 (TyVar .x)   x      y gt | Yes eq | No neq   | EQ Refl     | ()
 tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   | LT ngt neq2 with finTric x tv (finTric' tv x ngt neq2) (λ eq -> neq2 (sym eq))
 tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   | LT ngt neq2 | lt 
-  rewrite fincrBelow x tv lt (λ eq -> neq2 (sym eq)) with tSubstIncrLemma (fgtTrans tv x y lt gt) eq
+  rewrite fincrBelow x tv lt (λ eq -> neq2 (sym eq)) with tSubstIncrLemma (fgtTrans lt gt) eq
 tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   | LT ngt neq2 | lt | ()
 tsubstIncr t1 (TyVar .y)   x      y gt | No neq | Yes Refl rewrite fincrAbove x y gt with neq Refl
 tsubstIncr t1 (TyVar .y)   x      y gt | No neq | Yes Refl | ()
@@ -55,22 +55,22 @@ tincrSubstLemma : {tn : nat} {x y : fin (Suc tn)} -> weaken x == FS y -> not (y 
 tincrSubstLemma {tn}     {FZ}    {FZ}   () Z>=Z
 tincrSubstLemma {tn}     {FZ}    {FS y} () S>=Z
 tincrSubstLemma {Zero}   {FS ()} {FS y} eq (S>=S gt)
-tincrSubstLemma {Suc tn} {FS x}  {FS y} eq (S>=S gt) = tincrSubstLemma {tn} {x} {y} (eqFSBackwards eq) gt
+tincrSubstLemma {Suc tn} {FS x}  {FS y} eq (S>=S gt) = tincrSubstLemma {tn} {x} {y} (eqFS eq) gt
 
 tincrSubst : {tn : nat} (t1 : type tn) (t2 : type (Suc tn)) (x y : fin (Suc tn)) -> y >=F x ->
   tsubst (FS y) (tincr x t1) (tincr (weaken x) t2) == tincr x (tsubst y t1 t2)
 tincrSubst t1 (TyVar tv)   x y lt with finEq (fincr (weaken x) tv) (FS y) | finEq tv y 
 tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | Yes eq2 = Refl
 tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 with finComp tv x 
-tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | GT gt neq3  rewrite fincrBelow' x tv gt with neq2 (eqFSBackwards eq)
+tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | GT gt neq3  rewrite fincrBelow' x tv gt with neq2 (eqFS eq)
 tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | GT gt neq3  | ()
-tincrSubst t1 (TyVar .x)   x y lt | Yes eq  | No neq2 | EQ Refl     rewrite fincrBelow' x x >=FRefl with neq2 (eqFSBackwards eq)
+tincrSubst t1 (TyVar .x)   x y lt | Yes eq  | No neq2 | EQ Refl     rewrite fincrBelow' x x >=FRefl with neq2 (eqFS eq)
 tincrSubst t1 (TyVar .x)   x y lt | Yes eq  | No neq2 | EQ Refl     | ()
-tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | LT lt2 neq3 rewrite fincrAbove' x tv lt2 neq3 with tincrSubstLemma eq (fgtTrans y x tv lt lt2)
+tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | LT lt2 neq3 rewrite fincrAbove' x tv lt2 neq3 with tincrSubstLemma eq (fgtTrans lt lt2)
 tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | LT lt2 neq3 | ()
 tincrSubst t1 (TyVar .y)   x y lt | No neq2 | Yes Refl with neq2 (fincrBelow' x y lt)
 tincrSubst t1 (TyVar .y)   x y lt | No neq2 | Yes Refl | ()
-tincrSubst t1 (TyVar tv)   x y lt | No neq2 | No neq3 rewrite fdecrFincrSwap x y tv neq2 neq3 lt = Refl
+tincrSubst t1 (TyVar tv)   x y lt | No neq2 | No neq3 rewrite fincrFdecrSwap' x y tv neq2 neq3 lt = Refl
 tincrSubst t1 (t21 => t22) x y lt rewrite tincrSubst t1 t21 x y lt | tincrSubst t1 t22 x y lt = Refl
 tincrSubst t1 (Forall t2)  x y lt rewrite tincrSwap t1 x FZ >=FZ | tincrSubst (tincr FZ t1) t2 (FS x) (FS y) (S>=S lt) = Refl
 
@@ -90,7 +90,7 @@ tsubstSwapLemma {tn}     {FS x}  {FZ}   {FZ}        neq eq S>=Z      = Refl
 tsubstSwapLemma {tn}     {FS x}  {FZ}   {FS z}      neq () S>=Z      
 tsubstSwapLemma {tn}     {FS x}  {FS y} {FZ}        neq () (S>=S gt)
 tsubstSwapLemma {Zero}   {FS ()} {FS y} {FS z}      neq eq (S>=S gt)
-tsubstSwapLemma {Suc tn} {FS x}  {FS y} {FS z}      neq eq (S>=S gt) rewrite tsubstSwapLemma {tn} {x} {y} {z} (neqFSBackwards neq) (eqFSBackwards eq) gt = Refl
+tsubstSwapLemma {Suc tn} {FS x}  {FS y} {FS z}      neq eq (S>=S gt) rewrite tsubstSwapLemma {tn} {x} {y} {z} (neqFS neq) (eqFS eq) gt = Refl
 
 tsubstSwapLemma2 : {tn : nat} {x y : fin (Suc tn)} {z : fin (Suc (Suc tn))} (neq : not (z == weaken y)) -> fdecr (weaken y) z neq == x -> x >=F y -> z == FS x
 tsubstSwapLemma2 {tn}     {FZ}    {FZ}   {FZ}         neq eq   Z>=Z      with neq Refl
@@ -101,7 +101,7 @@ tsubstSwapLemma2 {tn}     {FS x}  {FZ}   {FZ}         neq eq   S>=Z      | ()
 tsubstSwapLemma2 {tn}     {FS x}  {FZ}   {FS .(FS x)} neq Refl S>=Z      = Refl
 tsubstSwapLemma2 {tn}     {FS x}  {FS y} {FZ}         neq ()   (S>=S gt)
 tsubstSwapLemma2 {Zero}   {FS ()} {FS y} {FS z}       neq eq   (S>=S gt)
-tsubstSwapLemma2 {Suc tn} {FS x}  {FS y} {FS z}       neq eq   (S>=S gt) rewrite tsubstSwapLemma2 {tn} {x} {y} {z} (neqFSBackwards neq) (eqFSBackwards eq) gt = Refl
+tsubstSwapLemma2 {Suc tn} {FS x}  {FS y} {FS z}       neq eq   (S>=S gt) rewrite tsubstSwapLemma2 {tn} {x} {y} {z} (neqFS neq) (eqFS eq) gt = Refl
 
 tsubstSwap : {tn : nat} (t1 : type (Suc (Suc tn))) (t2 : type tn) (t3 : type (Suc tn)) (x y : fin (Suc tn)) -> x >=F y ->
   tsubst y (tsubst x t2 t3) (tsubst (FS x) (tincr y t2) t1) == tsubst x t2 (tsubst (weaken y) t3 t1)
@@ -133,7 +133,7 @@ tsubstIncrCollapse {Suc tn} FZ     (TyVar tv)      t2 = Refl
 tsubstIncrCollapse {tn}     (FS x) (TyVar tv)      t2 with finEq (fincr (FS x) tv) (FS x)
 tsubstIncrCollapse {Zero}   (FS x) (TyVar ())      t2 | Yes eq
 tsubstIncrCollapse {Suc tn} (FS x) (TyVar FZ)      t2 | Yes ()
-tsubstIncrCollapse {Suc tn} (FS x) (TyVar (FS tv)) t2 | Yes eq with fincrNeq x tv (eqFSBackwards eq)
+tsubstIncrCollapse {Suc tn} (FS x) (TyVar (FS tv)) t2 | Yes eq with fincrNeq x tv (eqFS eq)
 tsubstIncrCollapse {Suc tn} (FS x) (TyVar (FS tv)) t2 | Yes eq | ()
 tsubstIncrCollapse {tn}     (FS x) (TyVar tv)      t2 | No neq rewrite fdecrFincrRefl (FS x) tv neq = Refl 
 tsubstIncrCollapse {tn}     x      (t11 => t12)    t2 rewrite tsubstIncrCollapse x t11 t2 | tsubstIncrCollapse x t12 t2 = Refl
