@@ -126,3 +126,15 @@ tsubstSwap (TyVar tv)          t2 t3 x y gt | No neq   | No neq2 | No neq3 | No 
 tsubstSwap (t11 => t12)        t2 t3 x y gt rewrite tsubstSwap t11 t2 t3 x y gt | tsubstSwap t12 t2 t3 x y gt = Refl
 tsubstSwap (Forall t1)         t2 t3 x y gt 
   rewrite tincrSwap t2 y FZ >=FZ | sym (tincrSubst t2 t3 FZ x >=FZ) | tsubstSwap t1 (tincr FZ t2) (tincr FZ t3) (FS x) (FS y) (S>=S gt) = Refl
+
+tsubstIncrCollapse : {tn : nat} (x : fin (Suc tn)) (t t2 : type tn) -> tsubst x t2 (tincr x t) == t
+tsubstIncrCollapse {Zero}   FZ     (TyVar ())      t2
+tsubstIncrCollapse {Suc tn} FZ     (TyVar tv)      t2 = Refl
+tsubstIncrCollapse {tn}     (FS x) (TyVar tv)      t2 with finEq (fincr (FS x) tv) (FS x)
+tsubstIncrCollapse {Zero}   (FS x) (TyVar ())      t2 | Yes eq
+tsubstIncrCollapse {Suc tn} (FS x) (TyVar FZ)      t2 | Yes ()
+tsubstIncrCollapse {Suc tn} (FS x) (TyVar (FS tv)) t2 | Yes eq with fincrNeq x tv (eqFSBackwards eq)
+tsubstIncrCollapse {Suc tn} (FS x) (TyVar (FS tv)) t2 | Yes eq | ()
+tsubstIncrCollapse {tn}     (FS x) (TyVar tv)      t2 | No neq rewrite fdecrFincrRefl (FS x) tv neq = Refl 
+tsubstIncrCollapse {tn}     x      (t11 => t12)    t2 rewrite tsubstIncrCollapse x t11 t2 | tsubstIncrCollapse x t12 t2 = Refl
+tsubstIncrCollapse {tn}     x      (Forall t)      t2 rewrite tsubstIncrCollapse (FS x) t (tincr FZ t2) = Refl
