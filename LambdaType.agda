@@ -36,14 +36,13 @@ tsubstIncr : {tn : nat} (t1 : type tn) (t2 : type (Suc tn)) (x y : fin (Suc tn))
 tsubstIncr t1 (TyVar tv)   x      y gt with finEq (fincr (FS x) tv) (weaken y) | finEq tv y
 tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | Yes eq2  = Refl
 tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   with finComp x tv
-tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   | GT gt2 eq2  rewrite fincrAbove x tv gt2 with neq (weakenEq eq)
-tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   | GT gt2 eq2  | ()
-tsubstIncr t1 (TyVar .x)   x      y gt | Yes eq | No neq   | EQ Refl     rewrite fincrAbove x x >=FRefl | weakenEq eq with neq Refl
-tsubstIncr t1 (TyVar .x)   x      y gt | Yes eq | No neq   | EQ Refl     | ()
-tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   | LT ngt neq2 with finTric x tv (finTric' tv x ngt neq2) (λ eq -> neq2 (sym eq))
-tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   | LT ngt neq2 | lt 
+tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   | GT gt2 neq2 nlt rewrite fincrAbove x tv gt2 with neq (weakenEq eq)
+tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   | GT gt2 neq2 nlt | ()
+tsubstIncr t1 (TyVar .x)   x      y gt | Yes eq | No neq   | EQ ngt Refl nlt rewrite fincrAbove x x >=FRefl | weakenEq eq with neq Refl
+tsubstIncr t1 (TyVar .x)   x      y gt | Yes eq | No neq   | EQ ngt Refl nlt | ()
+tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   | LT ngt neq2 lt 
   rewrite fincrBelow x tv lt (λ eq -> neq2 (sym eq)) with tSubstIncrLemma (fgtTrans lt gt) eq
-tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   | LT ngt neq2 | lt | ()
+tsubstIncr t1 (TyVar tv)   x      y gt | Yes eq | No neq   | LT ngt neq2 lt | ()
 tsubstIncr t1 (TyVar .y)   x      y gt | No neq | Yes Refl rewrite fincrAbove x y gt with neq Refl
 tsubstIncr t1 (TyVar .y)   x      y gt | No neq | Yes Refl | ()
 tsubstIncr t1 (TyVar tv)   x      y gt | No neq | No neq2  rewrite fincrFdecrSwap x y tv neq neq2 gt = Refl
@@ -62,12 +61,12 @@ tincrSubst : {tn : nat} (t1 : type tn) (t2 : type (Suc tn)) (x y : fin (Suc tn))
 tincrSubst t1 (TyVar tv)   x y lt with finEq (fincr (weaken x) tv) (FS y) | finEq tv y 
 tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | Yes eq2 = Refl
 tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 with finComp tv x 
-tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | GT gt neq3  rewrite fincrBelow' x tv gt with neq2 (eqFS eq)
-tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | GT gt neq3  | ()
-tincrSubst t1 (TyVar .x)   x y lt | Yes eq  | No neq2 | EQ Refl     rewrite fincrBelow' x x >=FRefl with neq2 (eqFS eq)
-tincrSubst t1 (TyVar .x)   x y lt | Yes eq  | No neq2 | EQ Refl     | ()
-tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | LT lt2 neq3 rewrite fincrAbove' x tv lt2 neq3 with tincrSubstLemma eq (fgtTrans lt lt2)
-tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | LT lt2 neq3 | ()
+tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | GT gt neq3 nlt  rewrite fincrBelow' x tv gt with neq2 (eqFS eq)
+tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | GT gt neq3 nlt  | ()
+tincrSubst t1 (TyVar .x)   x y lt | Yes eq  | No neq2 | EQ ngt Refl nlt rewrite fincrBelow' x x >=FRefl with neq2 (eqFS eq)
+tincrSubst t1 (TyVar .x)   x y lt | Yes eq  | No neq2 | EQ ngt Refl nlt | ()
+tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | LT ngt neq3 lt2 rewrite fincrAbove' x tv lt2 neq3 with tincrSubstLemma eq (fgtTrans lt lt2)
+tincrSubst t1 (TyVar tv)   x y lt | Yes eq  | No neq2 | LT ngt neq3 lt2 | ()
 tincrSubst t1 (TyVar .y)   x y lt | No neq2 | Yes Refl with neq2 (fincrBelow' x y lt)
 tincrSubst t1 (TyVar .y)   x y lt | No neq2 | Yes Refl | ()
 tincrSubst t1 (TyVar tv)   x y lt | No neq2 | No neq3 rewrite fincrFdecrSwap' x y tv neq2 neq3 lt = Refl
