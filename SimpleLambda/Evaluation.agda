@@ -33,3 +33,32 @@ evaluate (If b t f)         with evaluate b
 evaluate (If .True t f)     | InL TrueVal   = InR (t , EvalIf2)
 evaluate (If .False t f)    | InL FalseVal  = InR (f , EvalIf3)
 evaluate (If b t f)         | InR (b' , ev) = InR (If b' t f , EvalIf1 ev)
+
+valNormal : {n : nat} {gam : vect type n} {t : type} (e : lam gam t) -> isVal e -> not (lam gam t * eval e)
+valNormal .(Abs e) (AbsVal e) (e' , ())
+valNormal .True    TrueVal    (e' , ())
+valNormal .False   FalseVal   (e' , ())
+
+determinate : {t : type} {e e' e'' : lam [] t} (ev : eval e e') (ev' : eval e e'') -> e' == e''
+determinate {e = Var x pf}      ()             ev'
+determinate {e = App e1 e2}     (EvalApp1 ev)  (EvalApp1 ev') rewrite determinate ev ev' = Refl
+determinate {e = App ._ e2}     (EvalApp1 ())  (EvalApp2 ev')
+determinate {e = App ._ e2}     (EvalApp1 ())  (EvalApp3 x)
+determinate {e = App ._ e2}     (EvalApp2 ev)  (EvalApp1 ())
+determinate {e = App ._ e2}     (EvalApp2 ev)  (EvalApp2 ev') rewrite determinate ev ev' = Refl
+determinate {e = App ._ e2}     (EvalApp2 ev)  (EvalApp3 val) with valNormal e2 val (_ , ev)
+determinate {e = App ._ e2}     (EvalApp2 ev)  (EvalApp3 val) | ()
+determinate {e = App ._ e2}     (EvalApp3 val) (EvalApp1 ())
+determinate {e = App ._ e2}     (EvalApp3 val) (EvalApp2 ev') with valNormal e2 val (_ , ev')
+determinate {e = App ._ e2}     (EvalApp3 val) (EvalApp2 ev') | ()
+determinate {e = App ._ e2}     (EvalApp3 val) (EvalApp3 x)   = Refl
+determinate {e = Abs e}         ()             ev'
+determinate {e = True}          ()             ev'
+determinate {e = False}         ()             ev'
+determinate {e = If b t f}      (EvalIf1 ev)   (EvalIf1 ev')  rewrite determinate ev ev' = Refl
+determinate {e = If .True t f}  (EvalIf1 ())   EvalIf2
+determinate {e = If .False t f} (EvalIf1 ())   EvalIf3
+determinate {e = If .True t f}  EvalIf2        (EvalIf1 ())
+determinate {e = If .True t f}  EvalIf2        EvalIf2        = Refl
+determinate {e = If .False t f} EvalIf3        (EvalIf1 ())
+determinate {e = If .False t f} EvalIf3        EvalIf3        = Refl
