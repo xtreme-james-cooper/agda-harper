@@ -1,8 +1,11 @@
-module SimpleLambda.Type where
+module ProdsAndSums.Type where
 
 open import Basics
-open import Fin
+open import Vect
 
 data type : Set where
-  Bool : type
+  Tuple : {n : nat} -> vect type n -> type
   _=>_ : type -> type -> type
+
+unitT : type
+unitT = Tuple []
