@@ -5,7 +5,11 @@ open import Vect
 
 data type : Set where
   Tuple : {n : nat} -> vect type n -> type
+  Variant : {n : nat} -> vect type n -> type
   _=>_ : type -> type -> type
 
 unitT : type
 unitT = Tuple []
+
+voidT : type
+voidT = Variant []
