@@ -1,10 +1,10 @@
-module LambdaEval where
+module SystemF.Evaluation where
 
 open import Basics
 open import Fin
 open import Vect
-open import LambdaType
-open import LambdaTerm
+open import SystemF.Type
+open import SystemF.Term
 
 data isVal  {n tn : nat} {gam : vect (type tn) n} : {t : type tn} -> lam gam t -> Set where
   AbsVal : {t1 t2 : type tn} (e : lam (t2 :: gam) t1) -> isVal (Abs e)

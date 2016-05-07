@@ -1,9 +1,9 @@
-module LambdaTerm where
+module SystemF.Term where
 
 open import Basics
 open import Fin
 open import Vect
-open import LambdaType
+open import SystemF.Type
 
 data lam {n tn : nat} (gam : vect (type tn) n) : type tn -> Set where
   Var : {t : type tn} (x : fin n) -> (gam ! x) == t -> lam gam t

@@ -1,4 +1,4 @@
-module LambdaType where
+module SystemF.Type where
 
 open import Basics
 open import Fin
