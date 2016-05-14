@@ -1,9 +1,9 @@
-module SystemF.Term where
+module Term where
 
 open import Basics
 open import Fin
 open import Vect
-open import SystemF.Type
+open import Type
 
 data lam {n tn : nat} (gam : vect (type tn) n) : type tn -> Set
 data rec {n tn : nat} (gam : vect (type tn) n) : {rn : nat} -> vect (type tn) rn -> Set

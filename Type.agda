@@ -1,4 +1,4 @@
-module SystemF.Type where
+module Type where
 
 open import Basics
 open import Fin

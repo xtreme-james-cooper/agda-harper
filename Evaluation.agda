@@ -1,10 +1,10 @@
-module SystemF.Evaluation where
+module Evaluation where
 
 open import Basics
 open import Fin
 open import Vect
-open import SystemF.Type
-open import SystemF.Term
+open import Type
+open import Term
 
 data isVal  {n tn : nat} {gam : vect (type tn) n} : {t : type tn} -> lam gam t -> Set
 data isRecVal {n tn : nat} {gam : vect (type tn) n} : {rn : nat} {ts : vect (type tn) rn} -> rec gam ts -> Set
