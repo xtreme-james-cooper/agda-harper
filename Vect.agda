@@ -17,6 +17,32 @@ insertAt FZ      vect        a = a :: vect
 insertAt (FS ()) []          a
 insertAt (FS f)  (b :: vect) a = b :: (insertAt f vect a)
 
+map : {A B : Set} {n : nat} -> (A -> B) -> vect A n -> vect B n
+map f []        = []
+map f (a :: as) = f a :: map f as
+
+_∈_ : {A : Set} {n : nat} (a : A) (as : vect A n) -> Set
+_∈_ {A} {n} a as = fin n * (λ i -> (as ! i) == a)
+
+in? : {A : Set} {n : nat} -> equality A -> (a : A) (as : vect A n) -> decide (a ∈ as)
+in? {A} {Zero}  eq a []         = No (λ { (() , y) })
+in? {A} {Suc n} eq a (a' :: as) with eq a a'
+in? {A} {Suc n} eq a (.a :: as) | Yes Refl = Yes (FZ , Refl)
+in? {A} {Suc n} eq a (a' :: as) | No neq   with in? eq a as
+in? {A} {Suc n} eq a (a' :: as) | No neq   | Yes (i , pf) = Yes (FS i , pf)
+in? {A} {Suc n} eq a (a' :: as) | No neq   | No nmem      = No (inLemma a a' as neq nmem)
+  where 
+    inLemma : (a a' : A) (as : vect A n) -> not (a == a') -> not (fin n * (λ i → (as ! i) == a)) -> not (fin (Suc n) * (λ i → ((a' :: as) ! i) == a))
+    inLemma a .a as neq nmem (FZ , Refl)  = neq Refl
+    inLemma a a' as neq nmem (FS i , mem) = nmem (i , mem)
+
+remove : {A : Set} {n : nat} (a : A) (as : vect A (Suc n)) -> a ∈ as -> vect A n
+remove {A} {n}     a (.a :: as) (FZ , Refl)  = as
+remove {A} {Zero}  a (a' :: as) (FS () , mem)
+remove {A} {Suc n} a (a' :: as) (FS i , mem) = a' :: remove a as (i , mem)
+
+-- Lemmas
+
 lookupInsertAt : {A : Set} {n : nat} (vs : vect A n) (x : fin (Suc n)) (v : A) -> (insertAt x vs v ! x) == v
 lookupInsertAt vs        FZ      v = Refl
 lookupInsertAt []        (FS ()) v
@@ -36,10 +62,6 @@ insertAtFdecr {A} {Zero}  {[]}      {FS ()} {y}     npf Refl
 insertAtFdecr {A} {Suc n} {v :: vs} {FZ}    {FS y}  npf Refl = Refl
 insertAtFdecr {A} {Suc n} {v :: vs} {FS x}  {FZ}    npf Refl = Refl
 insertAtFdecr {A} {Suc n} {v :: vs} {FS x}  {FS y}  npf Refl = insertAtFdecr (neqFS npf) Refl
-
-map : {A B : Set} {n : nat} -> (A -> B) -> vect A n -> vect B n
-map f []        = []
-map f (a :: as) = f a :: map f as
 
 mapLookup : {A B : Set} {n : nat} (f : A -> B) (as : vect A n) (x : fin n) -> (map f as ! x) == f (as ! x)
 mapLookup f (a :: as) FZ     = Refl

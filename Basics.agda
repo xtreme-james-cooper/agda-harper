@@ -26,6 +26,9 @@ data decide (A : Set) : Set where
 equals? : {A : Set} -> A -> A -> Set
 equals? x y = decide (x == y)
 
+equality : Set -> Set
+equality A = (a b : A) -> equals? a b
+
 data _\/_ (A B : Set) : Set where
   InL : A -> A \/ B
   InR : B -> A \/ B
@@ -33,8 +36,20 @@ data _\/_ (A B : Set) : Set where
 data _*_ (A : Set) (B : A -> Set) : Set where
   _,_ : (a : A) (b : B a) -> A * B
 
+_×_ : Set -> Set -> Set
+A × B = A * λ _ -> B
+
 data nat : Set where
   Zero : nat
   Suc : nat -> nat
 
+neqS : (a b : nat) -> not (a == b) -> not (Suc a == Suc b)
+neqS a .a neq Refl = neq Refl
 
+natEq : equality nat
+natEq Zero    Zero     = Yes Refl
+natEq Zero    (Suc b)  = No (λ ())
+natEq (Suc a) Zero     = No (λ ())
+natEq (Suc a) (Suc b)  with natEq a b
+natEq (Suc a) (Suc .a) | Yes Refl = Yes Refl
+natEq (Suc a) (Suc b)  | No neq = No (neqS a b neq)

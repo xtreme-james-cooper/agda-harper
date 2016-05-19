@@ -15,7 +15,7 @@ neqFS {n} {x} {.x} npf Refl = npf Refl
 neqFSBackwards : {n : nat} {x y : fin n} -> not (x == y) -> not (FS x == FS y)
 neqFSBackwards npf Refl = npf Refl
 
-finEq : {n : nat} (x y : fin n) -> equals? x y
+finEq : {n : nat} -> equality (fin n)
 finEq FZ     FZ      = Yes Refl
 finEq FZ     (FS y)  = No (λ ())
 finEq (FS x) FZ      = No (λ ())
