@@ -12,12 +12,6 @@ data type (tn : nat) : Set where
   Rec : type (Suc tn) -> type tn
   Forall : type (Suc tn) -> type tn
 
-unitT : {tn : nat} -> type tn
-unitT = Tuple []
-
-voidT : {tn : nat} -> type tn
-voidT = Variant []
-
 tincr : {tn : nat} -> fin (Suc tn) -> type tn -> type (Suc tn)
 tincrVect : {n tn : nat} -> fin (Suc tn) -> vect (type tn) n -> vect (type (Suc tn)) n
 tincr x (TyVar y) = TyVar (fincr x y)
@@ -41,6 +35,21 @@ tsubst tv v (Rec t)      = Rec (tsubst (FS tv) (tincr FZ v) t)
 tsubst tv v (Forall t)  = Forall (tsubst (FS tv) (tincr FZ v) t)
 tsubstVect tv v []        = []
 tsubstVect tv v (t :: ts) = tsubst tv v t :: tsubstVect tv v ts
+
+-- abbreviations 
+
+unitT : {tn : nat} -> type tn
+unitT = Tuple []
+
+voidT : {tn : nat} -> type tn
+voidT = Variant []
+
+-- nat = μx. 1 + x
+natT' : {tn : nat} -> type (Suc tn)
+natT' = Variant (unitT :: (TyVar FZ :: []))
+
+natT : {tn : nat} -> type tn
+natT = Rec natT'
 
 -- lemmas
 

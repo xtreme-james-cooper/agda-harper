@@ -28,12 +28,6 @@ data pat {n} {tn} t gam where
   Fail : pat t gam []
   Match : {pn : nat} {t2 : type tn} {ts : vect (type tn) pn} -> lam (t2 :: gam) t -> pat t gam ts -> pat t gam (t2 :: ts)
 
-unitE : {n tn : nat} {gam : vect (type tn) n} -> lam gam unitT
-unitE = Tuple Unit
-
-abortE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} -> lam gam voidT -> lam gam t
-abortE e = Case e Fail
-
 teincr : {n tn : nat} {t : type tn} {gam : vect (type tn) n} (x : fin (Suc tn)) -> lam gam t -> lam (map (tincr x) gam) (tincr x t)
 teincrRec : {n tn rn : nat} {ts : vect (type tn) rn} {gam : vect (type tn) n} (x : fin (Suc tn)) -> rec gam ts -> rec (map (tincr x) gam) (tincrVect x ts)
 teincrPat : {n tn pn : nat} {t : type tn} {ts : vect (type tn) pn} {gam : vect (type tn) n} (x : fin (Suc tn)) -> pat t gam ts -> 
@@ -131,4 +125,21 @@ substRec x Unit        v = Unit
 substRec x (Field e r) v = Field (subst x e v) (substRec x r v)
 substPat x Fail         v = Fail
 substPat x (Match e ps) v = Match (subst (fincr FZ x) e (incr FZ v)) (substPat x ps v)
+
+-- abbreviations
+
+unitE : {n tn : nat} {gam : vect (type tn) n} -> lam gam unitT
+unitE = Tuple Unit
+
+abortE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} -> lam gam voidT -> lam gam t
+abortE e = Case e Fail
+
+zeroE : {n tn : nat} {gam : vect (type tn) n} -> lam gam natT
+zeroE = Fold natT' (Variant FZ unitE) Refl
+
+succE : {n tn : nat} {gam : vect (type tn) n} -> lam gam natT -> lam gam natT
+succE e = Fold natT' (Variant (FS FZ) e) Refl
+
+natcaseE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} -> lam gam natT -> lam gam t -> lam (natT :: gam) t -> lam gam t
+natcaseE e e0 es = Case (Unfold natT' e Refl) (Match (incr FZ e0) (Match es Fail))
 
