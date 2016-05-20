@@ -3,6 +3,7 @@ module Heap where
 open import Basics
 open import Fin
 open import Vect
+open import Sets
 open import Option
 
 addr : Set
@@ -16,34 +17,40 @@ isNull Zero    = Yes Refl
 isNull (Suc a) = No (λ ())
 
 data heap (A : Set) : nat -> Set where
-  Heap : (n : nat) (ls : vect nat n) (map : addr -> option A) -> 
+  Heap : (n : nat) (ls : vect nat n) (map : addr -> option A) -> isSet ls ->
     (asd : (l : addr) -> l ∈ ls -> A * (λ a -> map l == Some a)) -> 
     (nasnd : (l : nat) -> not (l ∈ ls) -> map l == None) -> 
     heap A n
  
 initial : {A : Set} -> heap A Zero
-initial = Heap Zero [] (λ x -> None) (λ { l (() , mem) }) (λ m _ -> Refl) 
+initial = Heap Zero [] (λ x -> None) EmptySet (λ { l (() , mem) }) (λ m _ -> Refl) 
 
 size : {A : Set} {n : nat} -> heap A n -> nat
-size (Heap n _ _ _ _) = n
+size (Heap n _ _ _ _ _) = n
 
 addresses : {A : Set} {n : nat} -> heap A n -> vect nat n
-addresses (Heap _ ls _ _ _) = ls
+addresses (Heap _ ls _ _ _ _) = ls
 
 lookup : {A : Set} {n : nat} (h : heap A n) (l : addr) -> l ∈ addresses h -> A
-lookup (Heap n ls map asd nasnd) l mem with asd l mem
-lookup (Heap n ls map asd nasnd) l mem | a , pf = a
+lookup (Heap n ls map is asd nasnd) l mem with asd l mem
+lookup (Heap n ls map is asd nasnd) l mem | a , pf = a
 
-nextAddr : {n : nat} -> vect addr n -> addr
-nextAddr {n}     ls with in? natEq (Suc n) ls
-nextAddr {Zero}  ls | Yes (() , mem)
-nextAddr {Suc n} ls | Yes mem = nextAddr (Vect.remove (Suc (Suc n)) ls mem)
-nextAddr {n}     ls | No nmem = Suc n
+nextAddr : {n : nat} (ls : vect addr n) -> isSet ls -> addr
+nextAddr {n}     ls is with in? natEq (Suc n) ls
+nextAddr {Zero}  ls is | Yes (() , mem)
+nextAddr {Suc n} ls is | Yes mem = nextAddr (Sets.remove (Suc (Suc n)) ls mem) (removeSet (Suc (Suc n)) ls mem is)
+nextAddr {n}     ls is | No nmem = Suc n
+
+nextAddrNotMem : {n : nat} (ls : vect addr n) (is : isSet ls) -> not (nextAddr ls is ∈ ls)
+nextAddrNotMem {n}     ls is mem with in? natEq (Suc n) ls
+nextAddrNotMem {Zero}  ls is mem | Yes (() , mem')
+nextAddrNotMem {Suc n} ls is mem | Yes mem' = nextAddrNotMem (Sets.remove (Suc (Suc n)) ls mem') (removeSet (Suc (Suc n)) ls mem' is) {!!}
+nextAddrNotMem {n}     ls is mem | No nmem  = nmem {!!}
 
 alloc : {A : Set} {n : nat} -> heap A n -> A -> (heap A (Suc n) × addr)
-alloc {A} (Heap n ls map asd nasnd) a = Heap (Suc n) (l :: ls) (extend natEq l a map) updateAsd updateNasnd , l
+alloc {A} (Heap n ls map is asd nasnd) a = Heap (Suc n) (l :: ls) (extend natEq l a map) (Insert l is (nextAddrNotMem ls is)) updateAsd updateNasnd , l
   where 
-    l = nextAddr ls
+    l = nextAddr ls is
 
     updateAsd : (l' : addr) -> l' ∈ (l :: ls) -> A * (λ a' -> extend natEq l a map l' == Some a')
     updateAsd l' mem          with natEq l l'
@@ -59,7 +66,7 @@ alloc {A} (Heap n ls map asd nasnd) a = Heap (Suc n) (l :: ls) (extend natEq l a
     updateNasnd l' nmem | No neq   = nasnd l' (λ { (i , mem) -> nmem (FS i , mem) })
 
 update : {A : Set} {n : nat} (h : heap A n) (l : addr) -> A -> l ∈ addresses h -> heap A n
-update {A} (Heap n ls map asd nasnd) l a mem = Heap n ls (extend natEq l a map) updateAsd updateNasnd
+update {A} (Heap n ls map is asd nasnd) l a mem = Heap n ls (extend natEq l a map) is updateAsd updateNasnd
   where 
     updateAsd : (l' : addr) -> l' ∈ ls -> A * (λ a' -> extend natEq l a map l' == Some a')
     updateAsd l' mem' with natEq l l'
@@ -73,14 +80,17 @@ update {A} (Heap n ls map asd nasnd) l a mem = Heap n ls (extend natEq l a map) 
     updateNasnd l' nmem | No neq   = nasnd l' nmem
 
 free : {A : Set} {n : nat} (h : heap A (Suc n)) (l : addr) -> l ∈ addresses h -> heap A n
-free {A} {n} (Heap .(Suc n) ls map asd nasnd) l mem = Heap n (Vect.remove l ls mem) (Option.remove natEq l map) updateAsd updateNasnd
+free {A} {n} (Heap .(Suc n) ls map is asd nasnd) l mem = Heap n (Sets.remove l ls mem) (Option.remove natEq l map) (removeSet l ls mem is) updateAsd updateNasnd 
   where
-    updateAsd : (l' : addr) -> l' ∈ Vect.remove l ls mem -> A * (λ a → Option.remove natEq l map l' == Some a)
-    updateAsd l' mem with natEq l l'
-    updateAsd .l mem | Yes Refl = {!!}
-    updateAsd l' mem | No neq   = {!!}
+    updateAsd : (l' : addr) -> l' ∈ Sets.remove l ls mem -> A * (λ a → Option.remove natEq l map l' == Some a)
+    updateAsd l' mem' with natEq l l'
+    updateAsd .l mem' | Yes Refl with removeRemoves l ls mem is mem'
+    updateAsd .l mem' | Yes Refl | ()
+    updateAsd l' mem' | No neq   = {!!}
 
-    updateNasnd : (l' : nat) -> not (l' ∈ Vect.remove l ls mem) -> Option.remove natEq l map l' == None
+    updateNasnd : (l' : nat) -> not (l' ∈ Sets.remove l ls mem) -> Option.remove natEq l map l' == None
     updateNasnd l' nmem with natEq l l'
     updateNasnd .l nmem | Yes Refl = {!!}
     updateNasnd l' nmem | No neq   = {!!}
+
+
