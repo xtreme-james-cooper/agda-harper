@@ -53,3 +53,18 @@ natEq (Suc a) Zero     = No (λ ())
 natEq (Suc a) (Suc b)  with natEq a b
 natEq (Suc a) (Suc .a) | Yes Refl = Yes Refl
 natEq (Suc a) (Suc b)  | No neq = No (neqS a b neq)
+
+data _>_ : nat -> nat -> Set where
+  S>Z : {a : nat} -> Suc a > Zero
+  S>S : {a b : nat} -> a > b -> Suc a > Suc b
+
+sucNrefl : {n : nat} -> not (n > n)
+sucNrefl (S>S gt) = sucNrefl gt
+
+sucGt : {n : nat} -> Suc n > n
+sucGt {Zero}  = S>Z
+sucGt {Suc n} = S>S sucGt
+
+gtTrans : {n m p : nat} -> n > m -> m > p -> n > p
+gtTrans (S>S gt1) S>Z       = S>Z
+gtTrans (S>S gt1) (S>S gt2) = S>S (gtTrans gt1 gt2)

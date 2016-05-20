@@ -41,11 +41,31 @@ nextAddr {Zero}  ls is | Yes (() , mem)
 nextAddr {Suc n} ls is | Yes mem = nextAddr (Sets.remove (Suc (Suc n)) ls mem) (removeSet (Suc (Suc n)) ls mem is)
 nextAddr {n}     ls is | No nmem = Suc n
 
+nextAddrNotLarge : {n : nat} (ls : vect addr n) (is : isSet ls) (m : nat) -> m > Suc n -> not (m == nextAddr ls is)
+nextAddrNotLarge {n}     ls is m              gt eq   with in? natEq (Suc n) ls 
+nextAddrNotLarge {Zero}  ls is m              gt eq   | Yes (() , mem)
+nextAddrNotLarge {Suc n} ls is m              gt eq   | Yes mem = 
+  nextAddrNotLarge (Sets.remove (Suc (Suc n)) ls mem) (removeSet (Suc (Suc n)) ls mem is) m (gtTrans gt sucGt) eq 
+nextAddrNotLarge {Zero}  ls is .(Suc Zero)    gt Refl | No nmem = sucNrefl gt
+nextAddrNotLarge {Suc n} ls is .(Suc (Suc n)) gt Refl | No nmem = sucNrefl gt
+
 nextAddrNotMem : {n : nat} (ls : vect addr n) (is : isSet ls) -> not (nextAddr ls is ∈ ls)
 nextAddrNotMem {n}     ls is mem with in? natEq (Suc n) ls
 nextAddrNotMem {Zero}  ls is mem | Yes (() , mem')
-nextAddrNotMem {Suc n} ls is mem | Yes mem' = nextAddrNotMem (Sets.remove (Suc (Suc n)) ls mem') (removeSet (Suc (Suc n)) ls mem' is) {!!}
-nextAddrNotMem {n}     ls is mem | No nmem  = nmem {!!}
+nextAddrNotMem {Suc n} ls is mem | Yes mem' = nextAddrNotMem ls' is' (removeRetainsOthers n' (nextAddr ls' is') ls mem' (nextAddrNotLarge ls' is' n' sucGt) mem)
+  where
+    n' = Suc (Suc n)
+    ls' = Sets.remove n' ls mem'
+    is' = removeSet n' ls mem' is
+nextAddrNotMem {Zero}  ls is mem | No nmem = nmem mem
+nextAddrNotMem {Suc n} ls is mem | No nmem = nmem mem
+
+nextAddrNotNull : {n : nat} (ls : vect addr n) (is : isSet ls) -> not (nextAddr ls is == null)
+nextAddrNotNull {n}     ls is eq with in? natEq (Suc n) ls
+nextAddrNotNull {Zero}  ls is eq | Yes (() , mem)
+nextAddrNotNull {Suc n} ls is eq | Yes mem = nextAddrNotNull (Sets.remove (Suc (Suc n)) ls mem) (removeSet (Suc (Suc n)) ls mem is) eq
+nextAddrNotNull {Zero}  ls is () | No nmem
+nextAddrNotNull {Suc n} ls is () | No nmem
 
 alloc : {A : Set} {n : nat} -> heap A n -> A -> (heap A (Suc n) × addr)
 alloc {A} (Heap n ls map is asd nasnd) a = Heap (Suc n) (l :: ls) (extend natEq l a map) (Insert l is (nextAddrNotMem ls is)) updateAsd updateNasnd , l
@@ -63,7 +83,7 @@ alloc {A} (Heap n ls map is asd nasnd) a = Heap (Suc n) (l :: ls) (extend natEq 
     updateNasnd l' nmem with natEq l l'
     updateNasnd .l nmem | Yes Refl with nmem (FZ , Refl)
     updateNasnd .l nmem | Yes Refl | ()
-    updateNasnd l' nmem | No neq   = nasnd l' (λ { (i , mem) -> nmem (FS i , mem) })
+    updateNasnd l' nmem | No neq   = nasnd l' (λ mem -> nmem (inCons mem))
 
 update : {A : Set} {n : nat} (h : heap A n) (l : addr) -> A -> l ∈ addresses h -> heap A n
 update {A} (Heap n ls map is asd nasnd) l a mem = Heap n ls (extend natEq l a map) is updateAsd updateNasnd
@@ -86,11 +106,10 @@ free {A} {n} (Heap .(Suc n) ls map is asd nasnd) l mem = Heap n (Sets.remove l l
     updateAsd l' mem' with natEq l l'
     updateAsd .l mem' | Yes Refl with removeRemoves l ls mem is mem'
     updateAsd .l mem' | Yes Refl | ()
-    updateAsd l' mem' | No neq   = {!!}
+    updateAsd l' mem' | No neq   = asd l' (removeDoesNotAdd l l' ls mem mem')
 
     updateNasnd : (l' : nat) -> not (l' ∈ Sets.remove l ls mem) -> Option.remove natEq l map l' == None
     updateNasnd l' nmem with natEq l l'
-    updateNasnd .l nmem | Yes Refl = {!!}
-    updateNasnd l' nmem | No neq   = {!!}
-
+    updateNasnd .l nmem | Yes Refl = Refl
+    updateNasnd l' nmem | No neq   = nasnd l' (removeRetainsOthers' l l' ls mem neq nmem)
 
