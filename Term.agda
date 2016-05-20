@@ -96,8 +96,8 @@ incr             x (Variant l e)   = Variant l (incr x e)
 incr             x (Case e ps)     = Case (incr x e) (incrPat x ps)
 incr             x (Fold t e eq)   = Fold t (incr x e) eq
 incr             x (Unfold t e eq) = Unfold t (incr x e) eq
-incr             x (TApp e t pf)  = TApp (incr x e) t pf
-incr {n} {tn} {gam} {t1} x (TAbs {t} e Refl) = TAbs (incr {n} {Suc tn} {map (tincr FZ) gam} {tincr FZ t1} x e) (mapInsertAt gam t1 (tincr FZ) x)
+incr             x (TApp e t pf)   = TApp (incr x e) t pf
+incr {gam = gam} x (TAbs e Refl)   = TAbs (incr x e) (mapInsertAt gam _ (tincr FZ) x)
 incrRec x Unit        = Unit
 incrRec x (Field e r) = Field (incr x e) (incrRec x r)
 incrPat x Fail         = Fail
@@ -143,3 +143,21 @@ succE e = Fold natT' (Variant (FS FZ) e) Refl
 natcaseE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} -> lam gam natT -> lam gam t -> lam (natT :: gam) t -> lam gam t
 natcaseE e e0 es = Case (Unfold natT' e Refl) (Match (incr FZ e0) (Match es Fail))
 
+nilE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} -> lam gam (listT t)
+nilE {t = t} = Fold (listT' t) (Variant FZ unitE) Refl
+
+listTLemma : {tn : nat} (t : type tn) -> tsubst FZ (listT t) (tincr FZ t) == t
+listTLemma t = tsubstIncrCollapse FZ t (listT t)
+
+consE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} -> lam gam t -> lam gam (listT t) -> lam gam (listT t)
+consE {n} {tn} {gam} {t} a as rewrite listTLemma t = Fold (listT' t) (Variant (FS FZ) (Tuple (Field a' (Field as Unit)))) Refl
+  where
+    a' : lam gam (tsubst FZ (listT t) (tincr FZ t))
+    a' rewrite listTLemma t = a
+
+listcaseE : {n tn : nat} {gam : vect (type tn) n} {a t : type tn} -> lam gam (listT a) -> lam gam t -> lam (listT a :: (a :: gam)) t -> lam gam t
+listcaseE {n} {tn} {gam} {a} {t} e en ec = 
+  Case (Unfold (listT' a) e Refl) (Match (incr FZ en) (Match (App (App (incr FZ (Abs (Abs ec))) (Proj (Var FZ eq) FZ)) (Proj (Var FZ Refl) (FS FZ))) Fail))
+  where
+    eq : Tuple (tsubst FZ (listT a) (tincr FZ a) :: (listT a :: [])) == Tuple (a :: (listT a :: []))
+    eq = funEq (λ x -> Tuple (x :: (listT a :: []))) (listTLemma a)

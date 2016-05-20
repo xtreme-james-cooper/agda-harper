@@ -51,6 +51,13 @@ natT' = Variant (unitT :: (TyVar FZ :: []))
 natT : {tn : nat} -> type tn
 natT = Rec natT'
 
+-- list a = μx. 1 + (a × x)
+listT' : {tn : nat} -> type tn -> type (Suc tn)
+listT' a = Variant (unitT :: (Tuple (tincr FZ a :: (TyVar FZ :: [])) :: []))
+
+listT : {tn : nat} -> type tn -> type tn
+listT a = Rec (listT' a)
+
 -- lemmas
 
 tincrIdx : {n tn : nat} (x : fin (Suc tn)) (ts : vect (type tn) n) (y : fin n) -> (tincrVect x ts ! y) == tincr x (ts ! y)
