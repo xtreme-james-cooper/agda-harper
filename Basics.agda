@@ -19,6 +19,12 @@ sym Refl = Refl
 funEq : {i j : Level} {A : Set i} {B : Set j} {a b : A} (f : A -> B) -> a == b -> f a == f b
 funEq f Refl = Refl
 
+data examineAndRemember {A : Set} (x : A) : Set where
+  It : (y : A) -> x == y -> examineAndRemember x 
+
+inspect : {A : Set} (x : A) -> examineAndRemember x
+inspect x = It x Refl 
+
 data decide (A : Set) : Set where
   Yes : A -> decide A
   No : not A -> decide A
@@ -38,6 +44,22 @@ data _*_ (A : Set) (B : A -> Set) : Set where
 
 _×_ : Set -> Set -> Set
 A × B = A * λ _ -> B
+
+data bool : Set where
+  True : bool
+  False : bool
+
+_and_ : bool -> bool -> bool
+True  and y = y
+False and y = False
+
+andTrue : {b : bool} -> (b and True) == b
+andTrue {True}  = Refl
+andTrue {False} = Refl
+
+andFalse : {b : bool} -> (b and False) == False
+andFalse {True}  = Refl
+andFalse {False} = Refl
 
 data nat : Set where
   Zero : nat
