@@ -10,7 +10,6 @@ data type (tn : nat) : Set where
   Tuple : {n : nat} -> vect (type tn) n -> type tn
   Variant : {n : nat} -> vect (type tn) n -> type tn
   Rec : type (Suc tn) -> type tn
-  Forall : type (Suc tn) -> type tn
 
 tincr : {tn : nat} -> fin (Suc tn) -> type tn -> type (Suc tn)
 tincrVect : {n tn : nat} -> fin (Suc tn) -> vect (type tn) n -> vect (type (Suc tn)) n
@@ -19,7 +18,6 @@ tincr x (t1 => t2) = tincr x t1 => tincr x t2
 tincr x (Tuple ts)   = Tuple (tincrVect x ts)
 tincr x (Variant ts) = Variant (tincrVect x ts)
 tincr x (Rec t)      = Rec (tincr (FS x) t)
-tincr x (Forall t) = Forall (tincr (FS x) t)
 tincrVect x []        = []
 tincrVect x (t :: ts) = tincr x t :: tincrVect x ts
 
@@ -32,7 +30,6 @@ tsubst tv v (t1 => t2)  = tsubst tv v t1 => tsubst tv v t2
 tsubst tv v (Tuple ts)   = Tuple (tsubstVect tv v ts)
 tsubst tv v (Variant ts) = Variant (tsubstVect tv v ts)
 tsubst tv v (Rec t)      = Rec (tsubst (FS tv) (tincr FZ v) t)
-tsubst tv v (Forall t)  = Forall (tsubst (FS tv) (tincr FZ v) t)
 tsubstVect tv v []        = []
 tsubstVect tv v (t :: ts) = tsubst tv v t :: tsubstVect tv v ts
 
@@ -77,7 +74,6 @@ tincrSwap (t1 => t2)   x y gt rewrite tincrSwap t1 x y gt | tincrSwap t2 x y gt 
 tincrSwap (Tuple ts)   x y gt rewrite tincrSwapVect ts x y gt = Refl
 tincrSwap (Variant ts) x y gt rewrite tincrSwapVect ts x y gt = Refl
 tincrSwap (Rec t)      x y gt rewrite tincrSwap t (FS x) (FS y) (S>=S gt) = Refl
-tincrSwap (Forall t)   x y gt rewrite tincrSwap t (FS x) (FS y) (S>=S gt) = Refl
 tincrSwapVect []        x y gt = Refl
 tincrSwapVect (t :: ts) x y gt rewrite tincrSwap t x y gt | tincrSwapVect ts x y gt = Refl
 
@@ -109,8 +105,6 @@ tsubstIncr t1 (Tuple ts)   x      y gt rewrite tsubstIncrVect t1 ts x y gt = Ref
 tsubstIncr t1 (Variant ts) x      y gt rewrite tsubstIncrVect t1 ts x y gt = Refl
 tsubstIncr t1 (Rec t2)     FZ     y gt rewrite tincrSwap t1 FZ FZ Z>=Z | tsubstIncr (tincr FZ t1) t2 (FS FZ) (FS y) (S>=S gt) = Refl
 tsubstIncr t1 (Rec t2)     (FS x) y gt rewrite tincrSwap t1 (FS x) FZ S>=Z | tsubstIncr (tincr FZ t1) t2 (FS (FS x)) (FS y) (S>=S gt) = Refl
-tsubstIncr t1 (Forall t2)  FZ     y gt rewrite tincrSwap t1 FZ FZ Z>=Z | tsubstIncr (tincr FZ t1) t2 (FS FZ) (FS y) (S>=S gt) = Refl
-tsubstIncr t1 (Forall t2)  (FS x) y gt rewrite tincrSwap t1 (FS x) FZ S>=Z | tsubstIncr (tincr FZ t1) t2 (FS (FS x)) (FS y) (S>=S gt) = Refl
 tsubstIncrVect t1 []         x y gt = Refl
 tsubstIncrVect t1 (t2 :: ts) x y gt rewrite tsubstIncr t1 t2 x y gt | tsubstIncrVect t1 ts x y gt = Refl
 
@@ -140,7 +134,6 @@ tincrSubst t1 (t21 => t22) x y lt rewrite tincrSubst t1 t21 x y lt | tincrSubst 
 tincrSubst t1 (Tuple ts)   x y lt rewrite tincrSubstVect t1 ts x y lt = Refl
 tincrSubst t1 (Variant ts) x y lt rewrite tincrSubstVect t1 ts x y lt = Refl
 tincrSubst t1 (Rec t2)     x y lt rewrite tincrSwap t1 x FZ >=FZ | tincrSubst (tincr FZ t1) t2 (FS x) (FS y) (S>=S lt) = Refl
-tincrSubst t1 (Forall t2)  x y lt rewrite tincrSwap t1 x FZ >=FZ | tincrSubst (tincr FZ t1) t2 (FS x) (FS y) (S>=S lt) = Refl
 tincrSubstVect t1 []         x y lt = Refl
 tincrSubstVect t1 (t2 :: ts) x y lt rewrite tincrSubst t1 t2 x y lt | tincrSubstVect t1 ts x y lt = Refl
 
@@ -154,7 +147,6 @@ tsubstIncrRefl (t11 => t12) t2 x rewrite tsubstIncrRefl t11 t2 x | tsubstIncrRef
 tsubstIncrRefl (Tuple ts)   t2 x rewrite tsubstIncrReflVect ts t2 x = Refl
 tsubstIncrRefl (Variant ts) t2 x rewrite tsubstIncrReflVect ts t2 x = Refl
 tsubstIncrRefl (Rec t)      t2 x rewrite tsubstIncrRefl t (tincr FZ t2) (FS x) = Refl
-tsubstIncrRefl (Forall t)   t2 x rewrite tsubstIncrRefl t (tincr FZ t2) (FS x) = Refl
 tsubstIncrReflVect []         t2 x = Refl
 tsubstIncrReflVect (t1 :: ts) t2 x rewrite tsubstIncrRefl t1 t2 x | tsubstIncrReflVect ts t2 x = Refl
 
@@ -206,8 +198,6 @@ tsubstSwap (Tuple ts)          t2 t3 x y gt rewrite tsubstSwapVect ts t2 t3 x y 
 tsubstSwap (Variant ts)        t2 t3 x y gt rewrite tsubstSwapVect ts t2 t3 x y gt = Refl
 tsubstSwap (Rec t1)            t2 t3 x y gt 
   rewrite tincrSwap t2 y FZ >=FZ | sym (tincrSubst t2 t3 FZ x >=FZ) | tsubstSwap t1 (tincr FZ t2) (tincr FZ t3) (FS x) (FS y) (S>=S gt) = Refl
-tsubstSwap (Forall t1)         t2 t3 x y gt 
-  rewrite tincrSwap t2 y FZ >=FZ | sym (tincrSubst t2 t3 FZ x >=FZ) | tsubstSwap t1 (tincr FZ t2) (tincr FZ t3) (FS x) (FS y) (S>=S gt) = Refl
 tsubstSwapVect []         t2 t3 x y gt = Refl
 tsubstSwapVect (t1 :: ts) t2 t3 x y gt rewrite tsubstSwap t1 t2 t3 x y gt | tsubstSwapVect ts t2 t3 x y gt = Refl
 
@@ -225,6 +215,5 @@ tsubstIncrCollapse {tn}     x      (t11 => t12)    t2 rewrite tsubstIncrCollapse
 tsubstIncrCollapse {tn}     x      (Tuple ts)      t2 rewrite tsubstIncrCollapseVect x ts t2 = Refl
 tsubstIncrCollapse {tn}     x      (Variant ts)    t2 rewrite tsubstIncrCollapseVect x ts t2 = Refl
 tsubstIncrCollapse {tn}     x      (Rec t)         t2 rewrite tsubstIncrCollapse (FS x) t (tincr FZ t2) = Refl
-tsubstIncrCollapse {tn}     x      (Forall t)      t2 rewrite tsubstIncrCollapse (FS x) t (tincr FZ t2) = Refl
 tsubstIncrCollapseVect x []         t2 = Refl
 tsubstIncrCollapseVect x (t1 :: ts) t2 rewrite tsubstIncrCollapse x t1 t2 | tsubstIncrCollapseVect x ts t2 = Refl

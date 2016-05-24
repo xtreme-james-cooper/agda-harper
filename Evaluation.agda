@@ -47,10 +47,6 @@ data eval {n} {tn} {gam} where
     eval {pf = Refl} {Refl} e e' -> eval {pf = Refl} {Refl} (Unfold t e eq) (Unfold t e' eq)
   EvalUnfold2 : {t : type (Suc tn)} {t2 : type tn} {b : bool} {e : lam gam (tsubst FZ (Rec t) t) b} {eq : tsubst FZ (Rec t) t == t2} -> 
     eval {pf = Refl} {sym eq} (Unfold t (Fold t e Refl) Refl) (evalLemma' t eq e) 
-  EvalTApp1 : {t1 : type (Suc tn)} {b : bool} {e : lam gam (Forall t1) False} {e' : lam gam (Forall t1) b} {t2 t3 : type tn} {pf : tsubst FZ t2 t1 == t3} ->
-    eval {pf = Refl} {Refl} e e' -> eval {pf = Refl} {Refl} (TApp e t2 pf) (TApp e' t2 pf)
-  EvalTApp2 : {t1 : type (Suc tn)} {gam' : vect (type (Suc tn)) n} {b : bool} {e : lam gam' t1 b} {pf1 : map (tincr FZ) gam == gam'} {t2 t3 : type tn} 
-    (pf2 : tsubst FZ t2 t1 == t3) -> eval {pf = evalLemma gam gam' pf1} {pf2} (TApp (TAbs e pf1) t2 pf2) (tesubst FZ t2 e)
 data evalPat {n} {tn} {t} {gam} where
   EvalPat1 :  {pn : nat} {t2 : type tn} {ts : vect (type tn) pn} {b1 b2 b3 : bool} {e1 : lam gam t2 b1} {e2 : lam (t2 :: gam) t b2} {e3 : lam gam t b3} 
     {ps : pat t gam ts} -> (b3 , e3) == subst FZ e2 e1 -> evalPat FZ e1 (Match e2 ps) e3
@@ -82,9 +78,6 @@ evaluate (Case {b = False} e ps)                     | _ , (e' , ev) = False , (
 evaluate (Unfold t {b = True} (Fold .t e Refl) Refl) = _ , (e , EvalUnfold2)
 evaluate (Unfold t {b = False} e Refl)               with evaluate e
 evaluate (Unfold t {b = False} e Refl)               | _ , (e' , ev) = False , (Unfold t e' Refl , EvalUnfold1 ev)
-evaluate (TApp {b = True} (TAbs e Refl) t Refl)      = _ , (tesubst FZ t e , EvalTApp2 Refl)
-evaluate (TApp {b = False} e t pf)                   with evaluate e
-evaluate (TApp {b = False} e t pf)                   | _ , (e' , ev) = False , (TApp e' t pf , EvalTApp1 ev)
 evaluatePat ()     e1 Fail
 evaluatePat FZ     e1 (Match e2 p) with inspect (subst FZ e2 e1) 
 evaluatePat FZ     e1 (Match e2 p) | It (b , e') eq = b , (e' , EvalPat1 (sym eq))

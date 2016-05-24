@@ -19,8 +19,6 @@ data lam {n} {tn} gam where
   Case : {pn : nat} {t : type tn} {ts : vect (type tn) pn} {b : bool} -> lam gam (Variant ts) b -> pat t gam ts -> lam gam t False
   Fold : (t : type (Suc tn)) {t2 : type tn} {b : bool} -> lam gam t2 b -> tsubst FZ (Rec t) t == t2 -> lam gam (Rec t) True
   Unfold : (t : type (Suc tn)) {t2 : type tn} {b : bool} -> lam gam (Rec t) b -> tsubst FZ (Rec t) t == t2 -> lam gam t2 False
-  TApp : {t1 : type (Suc tn)} {b : bool} -> lam gam (Forall t1) b -> (t2 : type tn) {t3 : type tn} -> tsubst FZ t2 t1 == t3 -> lam gam t3 False
-  TAbs : {t : type (Suc tn)} {gam' : vect (type (Suc tn)) n} {b : bool} -> lam gam' t b -> map (tincr FZ) gam == gam' -> lam gam (Forall t) True
 data rec {n} {tn} gam where
   Unit : rec gam [] True
   Field : {rn : nat} {t : type tn} {ts : vect (type tn) rn} {b1 b2 b3 : bool} -> lam gam t b1 -> rec gam ts b2 -> (b1 and b2) == b3 -> rec gam (t :: ts) b3
@@ -43,12 +41,6 @@ teincr             x (Variant {ts = ts} l e) | e' rewrite sym (tincrIdx x ts l) 
 teincr             x (Case e ps)             = Case (teincr x e) (teincrPat x ps)
 teincr             x (Fold t {t2} e eq)      rewrite sym eq = Fold (tincr (FS x) t) (teincr x e) (tsubstIncr (Rec t) t x FZ >=FZ)
 teincr             x (Unfold t {t2} e eq)    rewrite sym eq = Unfold (tincr (FS x) t) (teincr x e) (tsubstIncr (Rec t) t x FZ >=FZ)
-teincr             x (TApp {t1} e t Refl)    = TApp (teincr x e) (tincr x t) (tsubstIncr t t1 x FZ >=FZ)
-teincr {gam = gam} x (TAbs e Refl)           = TAbs (teincr (FS x) e) (teincrLemma x gam)
-  where
-    teincrLemma : {n tn : nat} (x : fin (Suc tn)) (gam : vect (type tn) n) -> map (tincr FZ) (map (tincr x) gam) == map (tincr (FS x)) (map (tincr FZ) gam)
-    teincrLemma x []         = Refl
-    teincrLemma x (t :: gam) rewrite tincrSwap t x FZ >=FZ | teincrLemma x gam = Refl 
 teincrRec x Unit            = Unit
 teincrRec x (Field e rs pf) = Field (teincr x e) (teincrRec x rs) pf
 teincrPat x Fail         = Fail
@@ -71,13 +63,6 @@ tesubst             x t2 (Variant {ts = ts} l e) | e' rewrite sym (tsubstIdx x t
 tesubst             x t2 (Case e ps)             = Case (tesubst x t2 e) (tesubstPat x t2 ps)
 tesubst             x t2 (Fold t e eq)           rewrite sym eq = Fold (tsubst (FS x) (tincr FZ t2) t) (tesubst x t2 e) (tsubstSwap t t2 (Rec t) x FZ >=FZ)
 tesubst             x t2 (Unfold t e eq)         rewrite sym eq = Unfold (tsubst (FS x) (tincr FZ t2) t) (tesubst x t2 e) (tsubstSwap t t2 (Rec t) x FZ >=FZ)
-tesubst {gam = gam} x t2 (TApp {t1} e t Refl)    = TApp (tesubst x t2 e) (tsubst x t2 t) (tsubstSwap t1 t2 t x FZ >=FZ)
-tesubst {gam = gam} x t2 (TAbs {t} e Refl)       = TAbs (tesubst (FS x) (tincr FZ t2) e) (tesubstLemma x t2 gam)
-  where
-    tesubstLemma : {n tn : nat} (x : fin (Suc tn)) (t : type tn) (gam : vect (type (Suc tn)) n) -> 
-      map (tincr FZ) (map (tsubst x t) gam) == map (tsubst (FS x) (tincr FZ t)) (map (tincr FZ) gam)
-    tesubstLemma x t []          = Refl
-    tesubstLemma x t (t1 :: gam) rewrite tesubstLemma x t gam | tincrSubst t t1 FZ x >=FZ = Refl
 tesubstRec x t2 Unit            = Unit
 tesubstRec x t2 (Field t ts pf) = Field (tesubst x t2 t) (tesubstRec x t2 ts) pf
 tesubstPat x t2 Fail         = Fail
@@ -96,8 +81,6 @@ incr             x (Variant l e)   = Variant l (incr x e)
 incr             x (Case e ps)     = Case (incr x e) (incrPat x ps)
 incr             x (Fold t e eq)   = Fold t (incr x e) eq
 incr             x (Unfold t e eq) = Unfold t (incr x e) eq
-incr             x (TApp e t pf)   = TApp (incr x e) t pf
-incr {gam = gam} x (TAbs e Refl)   = TAbs (incr x e) (mapInsertAt gam _ (tincr FZ) x)
 incrRec x Unit           = Unit
 incrRec x (Field e r pf) = Field (incr x e) (incrRec x r) pf
 incrPat x Fail         = Fail
@@ -130,10 +113,6 @@ subst                  x (Fold t e eq)   v with subst x e v
 subst                  x (Fold t e eq)   v | _ , e' = _ , Fold t e' eq
 subst                  x (Unfold t e eq) v with subst x e v 
 subst                  x (Unfold t e eq) v | _ , e' =  _ , Unfold t e' eq
-subst                  x (TApp e t pf)   v with subst x e v 
-subst                  x (TApp e t pf)   v | _ , e' = _ , TApp e' t pf
-subst {gam = gam} {t1} x (TAbs e Refl)   v rewrite mapInsertAt gam t1 (tincr FZ) x with subst x e (teincr FZ v)
-subst                  x (TAbs e Refl)   v | _ , e'  = _ , TAbs e' Refl
 substRec x Unit           v = _ , Unit
 substRec x (Field e r pf) v with subst x e v | substRec x r v
 substRec x (Field e r pf) v | b1 , e' | b2 , rec' = (b1 and b2) , Field e' rec' Refl
