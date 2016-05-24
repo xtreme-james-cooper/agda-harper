@@ -13,11 +13,11 @@ data lam {n} {tn} gam where
   App : {t1 t2 : type tn} {b1 b2 : bool} -> lam gam (t1 => t2) b1 -> lam gam t1 b2 -> lam gam t2 False
   Abs : {t1 t2 : type tn} {b : bool} -> lam (t1 :: gam) t2 b -> lam gam (t1 => t2) True
   Let : {t1 t2 : type tn} {b1 b2 : bool} -> lam gam t1 b1 -> lam (t1 :: gam) t2 b2 -> lam gam t2 False
-  Tuple : {rn : nat} {ts : vect (type tn) rn} {b : bool} -> rec gam ts b -> lam gam (Tuple ts) b
+  Tuple : {rn : nat} {ts : vect (type tn) rn} {b : bool} -> rec gam ts b -> lam gam (Tuple ts) True
   Proj : {rn : nat} {ts : vect (type tn) rn} {b : bool} -> lam gam (Tuple ts) b -> (p : fin rn) -> lam gam (ts ! p) False
-  Variant : {pn : nat} {ts : vect (type tn) pn} {b : bool} (l : fin pn) -> lam gam (ts ! l) b -> lam gam (Variant ts) b
+  Variant : {pn : nat} {ts : vect (type tn) pn} {b : bool} (l : fin pn) -> lam gam (ts ! l) b -> lam gam (Variant ts) True
   Case : {pn : nat} {t : type tn} {ts : vect (type tn) pn} {b : bool} -> lam gam (Variant ts) b -> pat t gam ts -> lam gam t False
-  Fold : (t : type (Suc tn)) {t2 : type tn} {b : bool} -> lam gam t2 b -> tsubst FZ (Rec t) t == t2 -> lam gam (Rec t) b
+  Fold : (t : type (Suc tn)) {t2 : type tn} {b : bool} -> lam gam t2 b -> tsubst FZ (Rec t) t == t2 -> lam gam (Rec t) True
   Unfold : (t : type (Suc tn)) {t2 : type tn} {b : bool} -> lam gam (Rec t) b -> tsubst FZ (Rec t) t == t2 -> lam gam t2 False
   TApp : {t1 : type (Suc tn)} {b : bool} -> lam gam (Forall t1) b -> (t2 : type tn) {t3 : type tn} -> tsubst FZ t2 t1 == t3 -> lam gam t3 False
   TAbs : {t : type (Suc tn)} {gam' : vect (type (Suc tn)) n} {b : bool} -> lam gam' t b -> map (tincr FZ) gam == gam' -> lam gam (Forall t) True
@@ -103,12 +103,12 @@ incrRec x (Field e r pf) = Field (incr x e) (incrRec x r) pf
 incrPat x Fail         = Fail
 incrPat x (Match e ps) = Match (incr (FS x) e) (incrPat x ps)
 
-subst : {n tn : nat} {gam : vect (type tn) n} {t1 t2 : type tn} {b : bool} (x : fin (Suc n)) -> 
-  lam (insertAt x gam t1) t2 b -> lam gam t1 True -> bool * lam gam t2
-substRec : {n tn rn : nat} {gam : vect (type tn) n} {t : type tn} {ts : vect (type tn) rn} {b : bool} (x : fin (Suc n)) -> 
-  rec (insertAt x gam t) ts b -> lam gam t True -> bool * rec gam ts
-substPat : {n tn pn : nat} {gam : vect (type tn) n} {t t2 : type tn} {ts : vect (type tn) pn} (x : fin (Suc n)) -> 
-  pat t (insertAt x gam t2) ts -> lam gam t2 True -> pat t gam ts
+subst : {n tn : nat} {gam : vect (type tn) n} {t1 t2 : type tn} {b1 b2 : bool} (x : fin (Suc n)) -> 
+  lam (insertAt x gam t1) t2 b1 -> lam gam t1 b2 -> bool * lam gam t2
+substRec : {n tn rn : nat} {gam : vect (type tn) n} {t : type tn} {ts : vect (type tn) rn} {b1 b2 : bool} (x : fin (Suc n)) -> 
+  rec (insertAt x gam t) ts b1 -> lam gam t b2 -> bool * rec gam ts
+substPat : {n tn pn : nat} {gam : vect (type tn) n} {t t2 : type tn} {ts : vect (type tn) pn} {b : bool} (x : fin (Suc n)) -> 
+  pat t (insertAt x gam t2) ts -> lam gam t2 b -> pat t gam ts
 subst                  x (Var y pf)      v with finEq y x
 subst {gam = gam} {t1} x (Var .x Refl)   v | Yes Refl rewrite lookupInsertAt gam x t1 = _ , v
 subst                  x (Var y pf)      v | No npf   = _ , Var (fdecr x y npf) (insertAtFdecr npf pf)
@@ -152,7 +152,7 @@ abortE e = Case e Fail
 zeroE : {n tn : nat} {gam : vect (type tn) n} -> lam gam natT True
 zeroE = Fold natT' (Variant FZ unitE) Refl
 
-succE : {n tn : nat} {gam : vect (type tn) n} {b : bool} -> lam gam natT b -> lam gam natT b
+succE : {n tn : nat} {gam : vect (type tn) n} {b : bool} -> lam gam natT b -> lam gam natT True
 succE e = Fold natT' (Variant (FS FZ) e) Refl
 
 natcaseE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} {b1 b2 b3 : bool} -> lam gam natT b1 -> lam gam t b2 -> lam (natT :: gam) t b3 -> lam gam t False
@@ -164,8 +164,8 @@ nilE {t = t} = Fold (listT' t) (Variant FZ unitE) Refl
 listTLemma : {tn : nat} (t : type tn) -> tsubst FZ (listT t) (tincr FZ t) == t
 listTLemma t = tsubstIncrCollapse FZ t (listT t)
 
-consE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} {b1 b2 : bool} -> lam gam t b1 -> lam gam (listT t) b2 -> lam gam (listT t) (b1 and b2)
-consE {n} {tn} {gam} {t} {b1} a as rewrite listTLemma t = Fold (listT' t) (Variant (FS FZ) (Tuple (Field a' (Field as Unit andTrue) Refl))) Refl
+consE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} {b1 b2 : bool} -> lam gam t b1 -> lam gam (listT t) b2 -> lam gam (listT t) True
+consE {n} {tn} {gam} {t} {b1} a as rewrite listTLemma t = Fold (listT' t) (Variant (FS FZ) (Tuple (Field a' (Field as Unit Refl) Refl))) Refl
   where
     a' : lam gam (tsubst FZ (listT t) (tincr FZ t)) b1
     a' rewrite listTLemma t = a
