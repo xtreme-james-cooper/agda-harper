@@ -6,6 +6,10 @@ data fin : nat -> Set where
   FZ : {n : nat} -> fin (Suc n)
   FS : {n : nat} -> fin n -> fin (Suc n)
 
+naturalize : {n : nat} -> fin n -> nat
+naturalize FZ     = Zero
+naturalize (FS n) = Suc (naturalize n)
+
 eqFS : {n : nat} {x y : fin n} -> FS x == FS y -> x == y
 eqFS {n} {x} {.x} Refl = Refl
 
