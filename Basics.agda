@@ -4,7 +4,7 @@ open import Agda.Primitive
 
 data Falsity : Set where
 
-not : Set -> Set
+not : {i : Level} -> Set i -> Set i
 not x = x -> Falsity
 
 data _==_ {i : Level} {A : Set i} (a : A) : A -> Set i where
@@ -16,24 +16,24 @@ data _==_ {i : Level} {A : Set i} (a : A) : A -> Set i where
 sym : {A : Set} {a b : A} -> a == b -> b == a
 sym Refl = Refl
 
+cast : {i : Level} {A B : Set i} -> A -> A == B -> B
+cast a eq rewrite eq = a
+
 funEq : {i j : Level} {A : Set i} {B : Set j} {a b : A} (f : A -> B) -> a == b -> f a == f b
 funEq f Refl = Refl
 
-data examineAndRemember {A : Set} (x : A) : Set where
+data examineAndRemember {i : Level} {A : Set i} (x : A) : Set i where
   It : (y : A) -> x == y -> examineAndRemember x 
 
-inspect : {A : Set} (x : A) -> examineAndRemember x
+inspect : {i : Level} {A : Set i} (x : A) -> examineAndRemember x
 inspect x = It x Refl 
 
-data decide (A : Set) : Set where
+data decide {i : Level} (A : Set i) : Set i where
   Yes : A -> decide A
   No : not A -> decide A
 
-equals? : {A : Set} -> A -> A -> Set
-equals? x y = decide (x == y)
-
 equality : Set -> Set
-equality A = (a b : A) -> equals? a b
+equality A = (a b : A) -> decide (a == b)
 
 data _\/_ (A B : Set) : Set where
   InL : A -> A \/ B
@@ -48,6 +48,12 @@ A × B = A * λ _ -> B
 data bool : Set where
   True : bool
   False : bool
+
+boolEq : equality bool
+boolEq True  True  = Yes Refl
+boolEq True  False = No (λ ())
+boolEq False True  = No (λ ())
+boolEq False False = Yes Refl
 
 _and_ : bool -> bool -> bool
 True  and y = y
@@ -90,3 +96,6 @@ sucGt {Suc n} = S>S sucGt
 gtTrans : {n m p : nat} -> n > m -> m > p -> n > p
 gtTrans (S>S gt1) S>Z       = S>Z
 gtTrans (S>S gt1) (S>S gt2) = S>S (gtTrans gt1 gt2)
+
+
+

@@ -7,6 +7,9 @@ open import Vect
 _∈_ : {A : Set} {n : nat} (a : A) (as : vect A n) -> Set
 _∈_ {A} {n} a as = fin n * (λ i -> (as ! i) == a)
 
+finite : Set -> Set
+finite A = nat * (λ n -> vect A n * (λ vals -> (a : A) -> a ∈ vals)) 
+
 inCons : {A : Set} {n : nat} {a a' : A} {as : vect A n} -> a ∈ as -> a ∈ (a' :: as)
 inCons (i , mem) = FS i , mem
 
@@ -66,3 +69,5 @@ removeRemoves {A} {n}     a (.a :: as) (FZ , Refl)   (Insert .a is nmem)  mem'  
 removeRemoves {A} {Zero}  a (a' :: as) (FS () , mem) (Insert .a' is nmem) (i' , mem')
 removeRemoves {A} {Suc n} a (.a :: as) (FS i , mem)  (Insert .a is nmem)  (FZ , Refl)    = nmem (i , mem)
 removeRemoves {A} {Suc n} a (a' :: as) (FS i , mem)  (Insert .a' is nmem) (FS i' , mem') = removeRemoves a as (i , mem) is (i' , mem')
+
+
