@@ -46,12 +46,8 @@ applySubstSubstSwap x y t1 (t21 => t22) sub rewrite applySubstSubstSwap x y t1 t
 applySubstSubstSwap x y t1 (Tuple ts)   sub rewrite applySubstSubstSwapVect x y t1 ts sub = Refl
 applySubstSubstSwap x y t1 (Variant ts) sub rewrite applySubstSubstSwapVect x y t1 ts sub = Refl
 applySubstSubstSwap x y t1 (Rec t2)     sub 
-  rewrite applySubstIncr FZ FZ t1 sub | sym (applySubstSubstSwap (FS x) (FS y) (tincr FZ t1) t2 (TyVar FZ :: map (tincr FZ) sub)) 
-    | mapInsertAt (map (tincr y) sub) (TyVar y) (tincr FZ) x | tincrSwapMap sub y FZ >=FZ = {!!} 
-
---tincr FZ (tapplyTsubst sub t1)
---==
---tapplyTsubst (TyVar FZ :: map (tincr FZ) sub) (tincr FZ t1)
+  rewrite sym (applySubstSubstSwap (FS x) (FS y) (tincr FZ t1) t2 (TyVar FZ :: map (tincr FZ) sub)) | mapInsertAt (map (tincr y) sub) (TyVar y) (tincr FZ) x 
+    | tincrSwapMap sub y FZ >=FZ | sym (applySubstIncr FZ FZ t1 sub) = Refl 
 applySubstSubstSwapVect x y t1 []         sub = Refl
 applySubstSubstSwapVect x y t1 (t2 :: ts) sub rewrite applySubstSubstSwap x y t1 t2 sub | applySubstSubstSwapVect x y t1 ts sub = Refl
 
@@ -59,24 +55,35 @@ applySubstLemma : {tn tn' : nat} (t : type (Suc tn)) {t2 : type tn} {sub : typeS
   tsubst FZ (Rec (tapplyTsubst (TyVar FZ :: map (tincr FZ) sub) t)) (tapplyTsubst (TyVar FZ :: map (tincr FZ) sub) t) == tapplyTsubst sub t2
 applySubstLemma t {t2} {sub} eq rewrite sym eq = applySubstSubstSwap FZ FZ (Rec t) t sub
 
+tapplyTsubstLookup : {n tn tn' : nat} (sub : typeSubstitution tn tn') (ts : vect (type tn) n) (l : fin n) -> (tapplyTsubstVect sub ts ! l) == tapplyTsubst sub (ts ! l)
+tapplyTsubstLookup sub []        ()
+tapplyTsubstLookup sub (t :: ts) FZ     = Refl
+tapplyTsubstLookup sub (t :: ts) (FS l) rewrite tapplyTsubstLookup sub ts l = Refl
+
 applyTsubst : {n tn tn' : nat} (sub : typeSubstitution tn tn') {gam : vect (type tn) n} {b : bool} {r : rawlam n b} {t : type tn} -> 
   lam gam r t -> lam (map (tapplyTsubst sub) gam) r (tapplyTsubst sub t)
 applyTsubstRec : {n tn tn' rn : nat} (sub : typeSubstitution tn tn') {gam : vect (type tn) n} {b : bool} {r : rawrec n b} {ts : vect (type tn) rn} -> 
   rec gam r ts -> rec (map (tapplyTsubst sub) gam) r (tapplyTsubstVect sub ts)
 applyTsubstPat : {n tn tn' pn : nat} (sub : typeSubstitution tn tn') {t : type tn} {gam : vect (type tn) n} {r : rawpat n} {ts : vect (type tn) pn} -> 
   pat t gam r ts -> pat (tapplyTsubst sub t) (map (tapplyTsubst sub) gam) r (tapplyTsubstVect sub ts)
-applyTsubst sub {gam} (Var x eq)      rewrite sym eq = Var x (mapLookup (tapplyTsubst sub) gam x)
-applyTsubst sub       (App e1 e2)     = App (applyTsubst sub e1) (applyTsubst sub e2)
-applyTsubst sub       (Abs e)         = Abs (applyTsubst sub e)
-applyTsubst sub       (Let e1 e2)     = Let (applyTsubst sub e1) (applyTsubst sub e2)
-applyTsubst sub       (Tuple r)       = Tuple (applyTsubstRec sub r)
-applyTsubst sub       (Proj e p)      = Proj (applyTsubst sub {!!}) p
-applyTsubst sub       (Variant l e)   = Variant l (applyTsubst sub {!!})
-applyTsubst sub       (Case e p)      = Case (applyTsubst sub e) (applyTsubstPat sub p)
-applyTsubst sub       (Fold t e eq)   = Fold (tapplyTsubst (TyVar FZ :: map (tincr FZ) sub) t) (applyTsubst sub e) (applySubstLemma t eq)
-applyTsubst sub       (Unfold t e eq) = Unfold (tapplyTsubst (TyVar FZ :: map (tincr FZ) sub) t) (applyTsubst sub e) (applySubstLemma t eq)
+applyTsubst sub {gam} (Var x eq)              rewrite sym eq = Var x (mapLookup (tapplyTsubst sub) gam x)
+applyTsubst sub       (App e1 e2)             = App (applyTsubst sub e1) (applyTsubst sub e2)
+applyTsubst sub       (Abs e)                 = Abs (applyTsubst sub e)
+applyTsubst sub       (Let e1 e2)             = Let (applyTsubst sub e1) (applyTsubst sub e2)
+applyTsubst sub       (Tuple r)               = Tuple (applyTsubstRec sub r)
+applyTsubst sub {gam} (Proj {ts = ts} e p)    rewrite sym (tapplyTsubstLookup sub ts p) = Proj (applyTsubst sub e) p
+applyTsubst sub {gam} (Variant {ts = ts} l e) = Variant l e'
+  where 
+    e' : lam (map (tapplyTsubst sub) gam) _ (tapplyTsubstVect sub ts ! l)
+    e' rewrite tapplyTsubstLookup sub ts l = applyTsubst sub e
+applyTsubst sub       (Case e p)              = Case (applyTsubst sub e) (applyTsubstPat sub p)
+applyTsubst sub       (Fold t e eq)           = Fold (tapplyTsubst (TyVar FZ :: map (tincr FZ) sub) t) (applyTsubst sub e) (applySubstLemma t eq)
+applyTsubst sub       (Unfold t e eq)         = Unfold (tapplyTsubst (TyVar FZ :: map (tincr FZ) sub) t) (applyTsubst sub e) (applySubstLemma t eq)
 applyTsubstRec sub Unit = Unit
 applyTsubstRec sub (Field e r pf) = Field (applyTsubst sub e) (applyTsubstRec sub r) pf
 applyTsubstPat sub Fail = Fail
 applyTsubstPat sub (Match e p) = Match (applyTsubst sub e) (applyTsubstPat sub p)
 
+tsubstComp : {tn tn' tn'' : nat} -> typeSubstitution tn tn' -> typeSubstitution tn' tn'' -> typeSubstitution tn tn''
+tsubstComp []          sub2 = []
+tsubstComp (t :: sub1) sub2 = tapplyTsubst sub2 t :: tsubstComp sub1 sub2
