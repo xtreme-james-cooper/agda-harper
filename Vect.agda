@@ -34,14 +34,14 @@ insertAtFincr (b :: gam) FZ     (FS y) a = Refl
 insertAtFincr (b :: gam) (FS x) FZ     a = Refl
 insertAtFincr (b :: gam) (FS x) (FS y) a = insertAtFincr gam x y a
 
-insertAtFdecr : {A : Set} {n : nat} {vs : vect A n} {x y : fin (Suc n)} {a b : A} -> (npf : not (y == x)) -> (insertAt x vs a ! y) == b -> (vs ! fdecr x y npf) == b
-insertAtFdecr {A} {n}     {vs}      {FZ}    {FZ}    npf Refl with npf Refl
-insertAtFdecr {A} {n}     {vs}      {FZ}    {FZ}    npf Refl | ()
-insertAtFdecr {A} {Zero}  {[]}      {FZ}    {FS ()} npf Refl
-insertAtFdecr {A} {Zero}  {[]}      {FS ()} {y}     npf Refl
-insertAtFdecr {A} {Suc n} {v :: vs} {FZ}    {FS y}  npf Refl = Refl
-insertAtFdecr {A} {Suc n} {v :: vs} {FS x}  {FZ}    npf Refl = Refl
-insertAtFdecr {A} {Suc n} {v :: vs} {FS x}  {FS y}  npf Refl = insertAtFdecr (neqFS npf) Refl
+lookupInsertAtNeq : {A : Set} {n : nat} (vs : vect A n) (x y : fin (Suc n)) (a : A) (npf : not (y == x)) -> (insertAt x vs a ! y) == (vs ! fdecr x y npf)
+lookupInsertAtNeq vs        FZ      FZ      a npf with npf Refl
+lookupInsertAtNeq vs        FZ      FZ      a npf | ()
+lookupInsertAtNeq []        FZ      (FS ()) a npf
+lookupInsertAtNeq []        (FS ()) y       a npf
+lookupInsertAtNeq (v :: vs) FZ      (FS y)  a npf = Refl
+lookupInsertAtNeq (v :: vs) (FS x)  FZ      a npf = Refl
+lookupInsertAtNeq (v :: vs) (FS x)  (FS y)  a npf = lookupInsertAtNeq vs x y a (neqFS npf)
 
 mapLookup : {A B : Set} {n : nat} (f : A -> B) (as : vect A n) (x : fin n) -> (map f as ! x) == f (as ! x)
 mapLookup f (a :: as) FZ     = Refl

@@ -77,6 +77,10 @@ tincrSwap (Rec t)      x y gt rewrite tincrSwap t (FS x) (FS y) (S>=S gt) = Refl
 tincrSwapVect []        x y gt = Refl
 tincrSwapVect (t :: ts) x y gt rewrite tincrSwap t x y gt | tincrSwapVect ts x y gt = Refl
 
+tincrSwapMap : {n tn : nat} (ts : vect (type tn) n) (x y : fin (Suc tn)) -> x >=F y -> map (tincr (weaken y)) (map (tincr x) ts) == map (tincr (FS x)) (map (tincr y) ts)
+tincrSwapMap []        x y gt = Refl
+tincrSwapMap (t :: ts) x y gt rewrite tincrSwap t x y gt | tincrSwapMap ts x y gt = Refl
+
 tSubstIncrLemma : {n : nat} {y x : fin n} -> x >=F y -> not (FS x == weaken y)
 tSubstIncrLemma Z>=Z      ()
 tSubstIncrLemma S>=Z      ()

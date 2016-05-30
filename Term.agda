@@ -99,9 +99,9 @@ substRec : {n tn rn : nat} {gam : vect (type tn) n} {t : type tn} {ts : vect (ty
   rec (insertAt x gam t) r ts -> lam gam rv t -> bool * (λ b -> rawrec n b * (λ r' -> (rawsubstRec x r rv == (b , r')) × rec gam r' ts))
 substPat : {n tn pn : nat} {gam : vect (type tn) n} {t t2 : type tn} {ts : vect (type tn) pn} {b : bool} {r : rawpat (Suc n)} {rv : rawlam n b} (x : fin (Suc n)) -> 
   pat t (insertAt x gam t2) r ts -> lam gam rv t2 -> pat t gam (rawsubstPat x r rv) ts
-subst                  x (Var y pf)      v with finEq y x
+subst                  x (Var y Refl)    v with finEq y x
 subst {gam = gam} {t1} x (Var .x Refl)   v | Yes Refl rewrite lookupInsertAt gam x t1 = _ , (_ , (Refl , v))
-subst                  x (Var y pf)      v | No npf   = _ , (_ , (Refl , Var (fdecr x y npf) (insertAtFdecr npf pf)))
+subst {gam = gam} {t1} x (Var y Refl)    v | No npf   = _ , (_ , (Refl , Var (fdecr x y npf) (sym (lookupInsertAtNeq gam x y t1 npf))))
 subst                  x (App e1 e2)     v with subst x e1 v | subst x e2 v
 subst                  x (App e1 e2)     v | _ , (_ , (eq1 , e1')) | _ , (_ , (eq2 , e2')) rewrite eq1 | eq2 = _ , (_ , (Refl , App e1' e2'))
 subst                  x (Abs e)         v with subst (fincr FZ x) e (incr FZ v) 

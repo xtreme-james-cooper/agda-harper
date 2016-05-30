@@ -27,6 +27,10 @@ finEq (FS x) (FS y)  with finEq x y
 finEq (FS x) (FS .x) | Yes Refl = Yes Refl
 finEq (FS x) (FS y)  | No npf   = No (neqFSBackwards npf)
 
+finEqRefl : {n : nat} (x : fin n) -> finEq x x == Yes Refl
+finEqRefl FZ     = Refl
+finEqRefl (FS x) rewrite finEqRefl x = Refl
+
 weaken : {n : nat} -> fin n -> fin (Suc n)
 weaken FZ = FZ
 weaken (FS x) = FS (weaken x)

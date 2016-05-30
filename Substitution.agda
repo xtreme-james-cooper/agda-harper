@@ -20,17 +20,38 @@ tapplyTsubst sub (Rec t)      = Rec (tapplyTsubst (TyVar FZ :: map (tincr FZ) su
 tapplyTsubstVect sub []        = []
 tapplyTsubstVect sub (t :: ts) = tapplyTsubst sub t :: tapplyTsubstVect sub ts
 
+applySubstIncr : {tn tn' : nat} (x : fin (Suc tn')) (y : fin (Suc tn)) (t : type tn) (sub : typeSubstitution tn tn') -> 
+  tapplyTsubst (insertAt y (map (tincr x) sub) (TyVar x)) (tincr y t) == tincr x (tapplyTsubst sub t)
+applySubstIncrVect : {tn tn' n : nat} (x : fin (Suc tn')) (y : fin (Suc tn)) (t : vect (type tn) n) (sub : typeSubstitution tn tn') -> 
+  tapplyTsubstVect (insertAt y (map (tincr x) sub) (TyVar x)) (tincrVect y t) == tincrVect x (tapplyTsubstVect sub t)
+applySubstIncr x y (TyVar z) sub    rewrite insertAtFincr (map (tincr x) sub) z y (TyVar x) | mapLookup (tincr x) sub z = Refl
+applySubstIncr x y (t1 => t2) sub   rewrite applySubstIncr x y t1 sub | applySubstIncr x y t2 sub = Refl
+applySubstIncr x y (Tuple ts) sub   rewrite applySubstIncrVect x y ts sub = Refl
+applySubstIncr x y (Variant ts) sub rewrite applySubstIncrVect x y ts sub = Refl
+applySubstIncr x y (Rec t) sub      
+  rewrite mapInsertAt (map (tincr x) sub) (TyVar x) (tincr FZ) y | tincrSwapMap sub x FZ >=FZ | sym (applySubstIncr (FS x) (FS y) t (TyVar FZ :: map (tincr FZ) sub)) = Refl
+applySubstIncrVect x y [] sub        = Refl
+applySubstIncrVect x y (t :: ts) sub rewrite applySubstIncr x y t sub | applySubstIncrVect x y ts sub = Refl
+
 applySubstSubstSwap : {tn tn' : nat} (x : fin (Suc tn)) (y : fin (Suc tn')) (t1 : type tn) (t2 : type (Suc tn)) (sub : typeSubstitution tn tn') ->
   tsubst y (tapplyTsubst sub t1) (tapplyTsubst (insertAt x (map (tincr y) sub) (TyVar y)) t2) == tapplyTsubst sub (tsubst x t1 t2)
 applySubstSubstSwapVect : {n tn tn' : nat} (x : fin (Suc tn)) (y : fin (Suc tn')) (t1 : type tn) (ts : vect (type (Suc tn)) n) (sub : typeSubstitution tn tn') ->
   tsubstVect y (tapplyTsubst sub t1) (tapplyTsubstVect (insertAt x (map (tincr y) sub) (TyVar y)) ts) == tapplyTsubstVect sub (tsubstVect x t1 ts)
 applySubstSubstSwap x y t1 (TyVar z)    sub with finEq z x
-applySubstSubstSwap x y t1 (TyVar z)    sub | Yes eq = {!!}
-applySubstSubstSwap x y t1 (TyVar z)    sub | No neq = {!!}
+applySubstSubstSwap x y t1 (TyVar .x)   sub | Yes Refl rewrite lookupInsertAt (map (tincr y) sub) x (TyVar y) | finEqRefl y = Refl
+applySubstSubstSwap x y t1 (TyVar z)    sub | No neq   
+  rewrite lookupInsertAtNeq (map (tincr y) sub) x z (TyVar y) neq | mapLookup (tincr y) sub (fdecr x z neq) 
+    | tsubstIncrCollapse y (sub ! fdecr x z neq) (tapplyTsubst sub t1) = Refl
 applySubstSubstSwap x y t1 (t21 => t22) sub rewrite applySubstSubstSwap x y t1 t21 sub | applySubstSubstSwap x y t1 t22 sub = Refl
 applySubstSubstSwap x y t1 (Tuple ts)   sub rewrite applySubstSubstSwapVect x y t1 ts sub = Refl
 applySubstSubstSwap x y t1 (Variant ts) sub rewrite applySubstSubstSwapVect x y t1 ts sub = Refl
-applySubstSubstSwap x y t1 (Rec t2)     sub = {!!}
+applySubstSubstSwap x y t1 (Rec t2)     sub 
+  rewrite applySubstIncr FZ FZ t1 sub | sym (applySubstSubstSwap (FS x) (FS y) (tincr FZ t1) t2 (TyVar FZ :: map (tincr FZ) sub)) 
+    | mapInsertAt (map (tincr y) sub) (TyVar y) (tincr FZ) x | tincrSwapMap sub y FZ >=FZ = {!!} 
+
+--tincr FZ (tapplyTsubst sub t1)
+--==
+--tapplyTsubst (TyVar FZ :: map (tincr FZ) sub) (tincr FZ t1)
 applySubstSubstSwapVect x y t1 []         sub = Refl
 applySubstSubstSwapVect x y t1 (t2 :: ts) sub rewrite applySubstSubstSwap x y t1 t2 sub | applySubstSubstSwapVect x y t1 ts sub = Refl
 
