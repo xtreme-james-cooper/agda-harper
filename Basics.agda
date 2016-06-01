@@ -10,6 +10,8 @@ not x = x -> Falsity
 data _==_ {i : Level} {A : Set i} (a : A) : A -> Set i where
   Refl : a == a
 
+infix 40 _==_
+
 {-# BUILTIN EQUALITY _==_ #-}
 {-# BUILTIN REFL Refl #-}
 
@@ -39,11 +41,18 @@ data _\/_ (A B : Set) : Set where
   InL : A -> A \/ B
   InR : B -> A \/ B
 
+infix 30 _\/_
+
 data _*_ (A : Set) (B : A -> Set) : Set where
   _,_ : (a : A) (b : B a) -> A * B
 
-_×_ : Set -> Set -> Set
-A × B = A * λ _ -> B
+infixr 30 _*_
+
+data _×_ (A B : Set) : Set where
+  _,_ : A -> B -> A × B
+
+infixr 30 _×_
+infixr 20 _,_
 
 data bool : Set where
   True : bool
@@ -58,6 +67,8 @@ boolEq False False = Yes Refl
 _and_ : bool -> bool -> bool
 True  and y = y
 False and y = False
+
+infix 70 _and_
 
 andTrue : {b : bool} -> (b and True) == b
 andTrue {True}  = Refl
@@ -85,6 +96,8 @@ natEq (Suc a) (Suc b)  | No neq = No (neqS a b neq)
 data _>_ : nat -> nat -> Set where
   S>Z : {a : nat} -> Suc a > Zero
   S>S : {a b : nat} -> a > b -> Suc a > Suc b
+
+infix 50 _>_ 
 
 sucNrefl : {n : nat} -> not (n > n)
 sucNrefl (S>S gt) = sucNrefl gt

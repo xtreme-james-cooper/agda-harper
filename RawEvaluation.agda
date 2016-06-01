@@ -10,6 +10,8 @@ Unit         rawlookup x       = None
 Field e r pf rawlookup Zero    = Some (_ , e)
 Field e r pf rawlookup (Suc p) = r rawlookup p
 
+infix 60 _rawlookup_
+
 data raweval {n : nat} : {b : bool} -> rawlam n False -> rawlam n b -> Set
 data rawevalPat {n : nat} : {b1 b2 : bool} (l : nat) -> rawlam n b1 -> rawpat n -> rawlam n b2 -> Set
 data raweval {n} where

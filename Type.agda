@@ -43,26 +43,26 @@ voidT = Variant []
 
 -- nat = μx. 1 + x
 natT' : {tn : nat} -> type (Suc tn)
-natT' = Variant (unitT :: (TyVar FZ :: []))
+natT' = Variant (unitT :: TyVar FZ :: [])
 
 natT : {tn : nat} -> type tn
 natT = Rec natT'
 
 -- list a = μx. 1 + (a × x)
 listT' : {tn : nat} -> type tn -> type (Suc tn)
-listT' a = Variant (unitT :: (Tuple (tincr FZ a :: (TyVar FZ :: [])) :: []))
+listT' a = Variant (unitT :: Tuple (tincr FZ a :: TyVar FZ :: []) :: [])
 
 listT : {tn : nat} -> type tn -> type tn
 listT a = Rec (listT' a)
 
 -- lemmas
 
-tincrIdx : {n tn : nat} (x : fin (Suc tn)) (ts : vect (type tn) n) (y : fin n) -> (tincrVect x ts ! y) == tincr x (ts ! y)
+tincrIdx : {n tn : nat} (x : fin (Suc tn)) (ts : vect (type tn) n) (y : fin n) -> tincrVect x ts ! y == tincr x (ts ! y)
 tincrIdx x []        ()
 tincrIdx x (t :: ts) FZ     = Refl
 tincrIdx x (t :: ts) (FS y) rewrite tincrIdx x ts y = Refl
 
-tsubstIdx : {n tn : nat} (x : fin (Suc tn)) (t : type tn) (ts : vect (type (Suc tn)) n) (y : fin n) -> (tsubstVect x t ts ! y) == tsubst x t (ts ! y)
+tsubstIdx : {n tn : nat} (x : fin (Suc tn)) (t : type tn) (ts : vect (type (Suc tn)) n) (y : fin n) -> tsubstVect x t ts ! y == tsubst x t (ts ! y)
 tsubstIdx x v []        ()
 tsubstIdx x v (t :: ts) FZ     = Refl
 tsubstIdx x v (t :: ts) (FS y) rewrite tsubstIdx x v ts y = Refl

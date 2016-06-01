@@ -19,7 +19,7 @@ data rawlam n where
   Unfold : {b : bool} -> rawlam n b -> rawlam n False
 data rawrec n where
   Unit : rawrec n True
-  Field : {b1 b2 b3 : bool} -> rawlam n b1 -> rawrec n b2 -> (b1 and b2) == b3 -> rawrec n b3
+  Field : {b1 b2 b3 : bool} -> rawlam n b1 -> rawrec n b2 -> b1 and b2 == b3 -> rawrec n b3
 data rawpat n where
   Fail : rawpat n
   Match : {b : bool} -> rawlam (Suc n) b -> rawpat n -> rawpat n

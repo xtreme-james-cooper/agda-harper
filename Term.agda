@@ -94,38 +94,38 @@ incrPat x Fail         = Fail
 incrPat x (Match e ps) = Match (incr (FS x) e) (incrPat x ps)
 
 subst : {n tn : nat} {gam : vect (type tn) n} {t1 t2 : type tn} {b1 b2 : bool} {r : rawlam (Suc n) b1} {rv : rawlam n b2} (x : fin (Suc n)) -> 
-  lam (insertAt x gam t1) r t2 -> lam gam rv t1 -> bool * (λ b -> rawlam n b * (λ r' -> (rawsubst x r rv == (b , r')) × lam gam r' t2))
+  lam (insertAt x gam t1) r t2 -> lam gam rv t1 -> bool * λ b -> rawlam n b * λ r' -> rawsubst x r rv == (b , r') × lam gam r' t2
 substRec : {n tn rn : nat} {gam : vect (type tn) n} {t : type tn} {ts : vect (type tn) rn} {b1 b2 : bool} {r : rawrec (Suc n) b1} {rv : rawlam n b2} (x : fin (Suc n)) -> 
-  rec (insertAt x gam t) r ts -> lam gam rv t -> bool * (λ b -> rawrec n b * (λ r' -> (rawsubstRec x r rv == (b , r')) × rec gam r' ts))
+  rec (insertAt x gam t) r ts -> lam gam rv t -> bool * λ b -> rawrec n b * λ r' -> rawsubstRec x r rv == (b , r') × rec gam r' ts
 substPat : {n tn pn : nat} {gam : vect (type tn) n} {t t2 : type tn} {ts : vect (type tn) pn} {b : bool} {r : rawpat (Suc n)} {rv : rawlam n b} (x : fin (Suc n)) -> 
   pat t (insertAt x gam t2) r ts -> lam gam rv t2 -> pat t gam (rawsubstPat x r rv) ts
 subst                  x (Var y Refl)    v with finEq y x
 subst {gam = gam} {t1} x (Var .x Refl)   v | Yes Refl rewrite lookupInsertAt gam x t1 = _ , (_ , (Refl , v))
-subst {gam = gam} {t1} x (Var y Refl)    v | No npf   = _ , (_ , (Refl , Var (fdecr x y npf) (sym (lookupInsertAtNeq gam x y t1 npf))))
-subst                  x (App e1 e2)     v with subst x e1 v | subst x e2 v
-subst                  x (App e1 e2)     v | _ , (_ , (eq1 , e1')) | _ , (_ , (eq2 , e2')) rewrite eq1 | eq2 = _ , (_ , (Refl , App e1' e2'))
+subst {gam = gam} {t1} x (Var y Refl)    v | No npf   = _ , _ , Refl , Var (fdecr x y npf) (sym (lookupInsertAtNeq gam x y t1 npf))
+subst                  x (App e1 e2)     v with subst x e1 v   | subst x e2 v
+subst                  x (App e1 e2)     v | _ , _ , eq1 , e1' | _ , _ , eq2 , e2' rewrite eq1 | eq2 = _ , _ , Refl , App e1' e2'
 subst                  x (Abs e)         v with subst (fincr FZ x) e (incr FZ v) 
-subst                  x (Abs e)         v | _ , (_ , (eq , e')) rewrite eq = _ , (_ , (Refl , Abs e'))
-subst                  x (Let e1 e2)     v with subst x e1 v | subst (fincr FZ x) e2 (incr FZ v) 
-subst                  x (Let e1 e2)     v | _ , (_ , (eq1 , e1')) | _ , (_ , (eq2 , e2')) rewrite eq1 | eq2 = _ , (_ , (Refl , Let e1' e2'))
+subst                  x (Abs e)         v | _ , _ , eq , e' rewrite eq = _ , _ , Refl , Abs e'
+subst                  x (Let e1 e2)     v with subst x e1 v   | subst (fincr FZ x) e2 (incr FZ v) 
+subst                  x (Let e1 e2)     v | _ , _ , eq1 , e1' | _ , _ , eq2 , e2' rewrite eq1 | eq2 = _ , _ , Refl , Let e1' e2'
 subst                  x (Tuple rec)     v with substRec x rec v 
-subst                  x (Tuple rec)     v | _ , (_ , (eq , rec')) rewrite eq = _ , (_ , (Refl , Tuple rec'))
+subst                  x (Tuple rec)     v | _ , _ , eq , rec' rewrite eq = _ , _ , Refl , Tuple rec'
 subst                  x (Proj e p)      v with subst x e v 
-subst                  x (Proj e p)      v | _ , (_ , (eq , e')) rewrite eq = _ , (_ , (Refl , Proj e' p))
+subst                  x (Proj e p)      v | _ , _ , eq , e' rewrite eq = _ , _ , Refl , Proj e' p
 subst                  x (Variant l e)   v with subst x e v 
-subst                  x (Variant l e)   v | _ , (_ , (eq , e')) rewrite eq = _ , (_ , (Refl , Variant l e'))
+subst                  x (Variant l e)   v | _ , _ , eq , e' rewrite eq = _ , _ , Refl , Variant l e'
 subst                  x (Case e ps)     v with subst x e v 
-subst                  x (Case e ps)     v | _ , (_ , (eq , e')) rewrite eq = _ , (_ , (Refl , Case e' (substPat x ps v)))
+subst                  x (Case e ps)     v | _ , _ , eq , e' rewrite eq = _ , _ , Refl , Case e' (substPat x ps v)
 subst                  x (Fold t e eq)   v with subst x e v 
-subst                  x (Fold t e eq)   v | _ , (_ , (eq' , e')) rewrite eq' = _ , (_ , (Refl , Fold t e' eq))
+subst                  x (Fold t e eq)   v | _ , _ , eq' , e' rewrite eq' = _ , _ , Refl , Fold t e' eq
 subst                  x (Unfold t e eq) v with subst x e v 
-subst                  x (Unfold t e eq) v | _ , (_ , (eq' , e')) rewrite eq' = _ , (_ , (Refl , Unfold t e' eq))
+subst                  x (Unfold t e eq) v | _ , _ , eq' , e' rewrite eq' = _ , _ , Refl , Unfold t e' eq
 substRec x Unit           v = _ , (_ , (Refl , Unit))
-substRec x (Field e r pf) v with subst x e v | substRec x r v
-substRec x (Field e r pf) v | b1 , (_ , (eq1 , e')) | b2 , (_ , (eq2 , rec')) rewrite eq1 | eq2 = _ , (_ , (Refl , Field e' rec' Refl))
+substRec x (Field e r pf) v with subst x e v    | substRec x r v
+substRec x (Field e r pf) v | b1 , _ , eq1 , e' | b2 , _ , eq2 , rec' rewrite eq1 | eq2 = _ , _ , Refl , Field e' rec' Refl
 substPat x Fail         v = Fail
 substPat x (Match e ps) v with subst (fincr FZ x) e (incr FZ v) 
-substPat x (Match e ps) v | _ , (_ , (eq , e')) rewrite eq = Match e' (substPat x ps v)
+substPat x (Match e ps) v | _ , _ , eq , e' rewrite eq = Match e' (substPat x ps v)
 
 -- abbreviations
 
@@ -163,5 +163,5 @@ listcaseE : {n tn : nat} {gam : vect (type tn) n} {a t : type tn} {b1 b2 b3 : bo
 listcaseE {n} {tn} {gam} {a} {t} e en ec = 
   Case (Unfold (listT' a) e Refl) (Match (incr FZ en) (Match (App (App (incr FZ (Abs (Abs ec))) (Proj (Var FZ eq) FZ)) (Proj (Var FZ Refl) (FS FZ))) Fail))
   where
-    eq : Tuple (tsubst FZ (listT a) (tincr FZ a) :: (listT a :: [])) == Tuple (a :: (listT a :: []))
-    eq = funEq (λ x -> Tuple (x :: (listT a :: []))) (listTLemma a)
+    eq : Tuple (tsubst FZ (listT a) (tincr FZ a) :: listT a :: []) == Tuple (a :: listT a :: [])
+    eq = funEq (λ x -> Tuple (x :: listT a :: [])) (listTLemma a)

@@ -46,6 +46,8 @@ data _>=F_ : {n : nat} -> fin n -> fin n -> Set where
   S>=Z : {n : nat} {x : fin n} -> FS x >=F FZ
   S>=S : {n : nat} {x y : fin n} -> x >=F y -> FS x >=F FS y
 
+infix 50 _>=F_
+
 >=FRefl : {n : nat} {x : fin n} -> x >=F x
 >=FRefl {Suc n} {FZ}   = Z>=Z
 >=FRefl {Suc n} {FS x} = S>=S >=FRefl
@@ -66,6 +68,8 @@ data _comp_ {n : nat} (x y : fin n) : Set where
   GT : x >=F y -> not (x == y) -> not (y >=F x) -> x comp y
   EQ : x >=F y -> x == y -> y >=F x -> x comp y
   LT : not (x >=F y) -> not (x == y) -> y >=F x -> x comp y
+
+infix 50 _comp_
 
 finComp : {n : nat} (x y : fin n) -> x comp y
 finComp FZ     FZ      = EQ Z>=Z Refl Z>=Z
@@ -125,32 +129,32 @@ fdecrFincrRefl (FS x) FZ     neq = Refl
 fdecrFincrRefl (FS x) (FS y) neq rewrite fdecrFincrRefl x y (neqFS neq) = Refl
 
 fdecrPfIrrel : {n : nat} (x y : fin (Suc n)) (neq neq2 : not (y == x)) -> fdecr x y neq == fdecr x y neq2
-fdecrPfIrrel {n} FZ FZ neq neq2 with neq Refl
-fdecrPfIrrel {n} FZ FZ neq neq2 | ()
-fdecrPfIrrel {Zero} x (FS ()) neq neq2
-fdecrPfIrrel {Zero} (FS ()) y neq neq2
-fdecrPfIrrel {Suc n} FZ (FS y) neq neq2 = Refl
-fdecrPfIrrel {Suc n} (FS x) FZ neq neq2 = Refl
-fdecrPfIrrel {Suc n} (FS x) (FS y) neq neq2 = funEq FS (fdecrPfIrrel x y (neqFS neq) (neqFS neq2))
+fdecrPfIrrel {n}     FZ      FZ      neq neq2 with neq Refl
+fdecrPfIrrel {n}     FZ      FZ      neq neq2 | ()
+fdecrPfIrrel {Zero}  x       (FS ()) neq neq2
+fdecrPfIrrel {Zero}  (FS ()) y       neq neq2
+fdecrPfIrrel {Suc n} FZ      (FS y)  neq neq2 = Refl
+fdecrPfIrrel {Suc n} (FS x)  FZ      neq neq2 = Refl
+fdecrPfIrrel {Suc n} (FS x)  (FS y)  neq neq2 = funEq FS (fdecrPfIrrel x y (neqFS neq) (neqFS neq2))
 
 fdecrSwap : {n : nat} (x y : fin (Suc n)) (z : fin (Suc (Suc n))) (neq : not (z == FS x)) (neq2 : not (z == weaken y)) 
   (neq3 : not (fdecr (FS x) z neq == y)) (neq4 : not (fdecr (weaken y) z neq2 == x)) -> x >=F y -> 
     fdecr y (fdecr (FS x) z neq) neq3 == fdecr x (fdecr (weaken y) z neq2) neq4
-fdecrSwap {n} FZ FZ FZ neq neq2 neq3 neq4 Z>=Z with neq2 Refl
-fdecrSwap {n} FZ FZ FZ neq neq2 neq3 neq4 Z>=Z | ()
-fdecrSwap {Zero} FZ FZ (FS FZ) neq neq2 neq3 neq4 Z>=Z with neq Refl
-fdecrSwap {Zero} FZ FZ (FS FZ) neq neq2 neq3 neq4 Z>=Z | ()
-fdecrSwap {Zero} FZ FZ (FS (FS ())) neq neq2 neq3 neq4 Z>=Z
-fdecrSwap {Suc n} FZ FZ (FS z) neq neq2 neq3 neq4 Z>=Z = fdecrPfIrrel FZ z (neqFS neq) neq4
-fdecrSwap {n} (FS x) FZ FZ neq neq2 neq3 neq4 S>=Z with neq2 Refl
-fdecrSwap {n} (FS x) FZ FZ neq neq2 neq3 neq4 S>=Z | ()
-fdecrSwap {Zero} (FS ()) FZ (FS FZ) neq neq2 neq3 neq4 S>=Z
-fdecrSwap {Zero} (FS x) FZ (FS (FS ())) neq neq2 neq3 neq4 S>=Z
-fdecrSwap {Suc n} (FS x) FZ (FS z) neq neq2 neq3 neq4 S>=Z = fdecrPfIrrel (FS x) z (neqFS neq) neq4
-fdecrSwap {Zero} (FS ()) (FS y) FZ neq neq2 neq3 neq4 (S>=S gt)
-fdecrSwap {Suc n} (FS x) (FS y) FZ neq neq2 neq3 neq4 (S>=S gt) = Refl
-fdecrSwap {Zero} (FS ()) (FS y) (FS z) neq neq2 neq3 neq4 (S>=S gt)
-fdecrSwap {Suc n} (FS x) (FS y) (FS z) neq neq2 neq3 neq4 (S>=S gt)
+fdecrSwap {n}     FZ      FZ     FZ           neq neq2 neq3 neq4 Z>=Z      with neq2 Refl
+fdecrSwap {n}     FZ      FZ     FZ           neq neq2 neq3 neq4 Z>=Z      | ()
+fdecrSwap {Zero}  FZ      FZ     (FS FZ)      neq neq2 neq3 neq4 Z>=Z      with neq Refl
+fdecrSwap {Zero}  FZ      FZ     (FS FZ)      neq neq2 neq3 neq4 Z>=Z      | ()
+fdecrSwap {Zero}  FZ      FZ     (FS (FS ())) neq neq2 neq3 neq4 Z>=Z
+fdecrSwap {Suc n} FZ      FZ     (FS z)       neq neq2 neq3 neq4 Z>=Z      = fdecrPfIrrel FZ z (neqFS neq) neq4
+fdecrSwap {n}     (FS x)  FZ     FZ           neq neq2 neq3 neq4 S>=Z      with neq2 Refl
+fdecrSwap {n}     (FS x)  FZ     FZ           neq neq2 neq3 neq4 S>=Z      | ()
+fdecrSwap {Zero}  (FS ()) FZ     (FS FZ)      neq neq2 neq3 neq4 S>=Z
+fdecrSwap {Zero}  (FS x)  FZ     (FS (FS ())) neq neq2 neq3 neq4 S>=Z
+fdecrSwap {Suc n} (FS x)  FZ     (FS z)       neq neq2 neq3 neq4 S>=Z      = fdecrPfIrrel (FS x) z (neqFS neq) neq4
+fdecrSwap {Zero}  (FS ()) (FS y) FZ           neq neq2 neq3 neq4 (S>=S gt)
+fdecrSwap {Suc n} (FS x)  (FS y) FZ           neq neq2 neq3 neq4 (S>=S gt) = Refl
+fdecrSwap {Zero}  (FS ()) (FS y) (FS z)       neq neq2 neq3 neq4 (S>=S gt)
+fdecrSwap {Suc n} (FS x)  (FS y) (FS z)       neq neq2 neq3 neq4 (S>=S gt)
   rewrite fdecrSwap x y z (neqFS neq) (neqFS neq2) (neqFS neq3) (neqFS neq4) gt = Refl
 
 fincrSwap : {tn : nat} (t : fin tn) (x y : fin (Suc tn)) -> x >=F y -> fincr (weaken y) (fincr x t) == fincr (FS x) (fincr y t) 
