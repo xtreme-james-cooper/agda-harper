@@ -221,3 +221,83 @@ tsubstIncrCollapse {tn}     x      (Variant ts)    t2 rewrite tsubstIncrCollapse
 --tsubstIncrCollapse {tn}     x      (Rec t)         t2 rewrite tsubstIncrCollapse (FS x) t (tincr FZ t2) = Refl
 tsubstIncrCollapseVect x []         t2 = Refl
 tsubstIncrCollapseVect x (t1 :: ts) t2 rewrite tsubstIncrCollapse x t1 t2 | tsubstIncrCollapseVect x ts t2 = Refl
+
+-- equality
+
+typeEq : {tn : nat} -> equality (type tn)
+typeVectEq : {n tn : nat} -> equality (vect (type tn) n)
+typeEq (TyVar tv1)        (TyVar tv2)          with finEq tv1 tv2
+typeEq (TyVar tv1)        (TyVar .tv1)         | Yes Refl = Yes Refl
+typeEq (TyVar tv1)        (TyVar tv2)          | No neq   = No (lemma neq)
+  where 
+    lemma : {tn : nat} {tv1 tv2 : fin tn} -> not (tv1 == tv2) -> not (TyVar tv1 == TyVar tv2)
+    lemma neq Refl = neq Refl
+typeEq (TyVar tv1)        (t21 => t22)         = No (λ ())
+typeEq (TyVar tv1)        (Tuple ts2)          = No (λ ())
+typeEq (TyVar tv1)        (Variant ts2)        = No (λ ())
+--typeEq (TyVar tv1)        (Rec t2)             = No (λ ())
+typeEq (t11 => t12)       (TyVar tv2)          = No (λ ())
+typeEq (t11 => t12)       (t21 => t22)         with typeEq t11 t21 | typeEq t12 t22
+typeEq (t11 => t12)       (.t11 => .t12)       | Yes Refl | Yes Refl = Yes Refl
+typeEq (t11 => t12)       (.t11 => t22)        | Yes Refl | No neq   = No (lemma neq)
+  where 
+    lemma : {tn : nat} {t11 t12 t22 : type tn} -> not (t12 == t22) -> not ((t11 => t12) == (t11 => t22))
+    lemma neq Refl = neq Refl
+typeEq (t11 => t12)       (t21 => t22)         | No neq   | _        = No (lemma neq)
+  where 
+    lemma : {tn : nat} {t11 t12 t21 t22 : type tn} -> not (t11 == t21) -> not ((t11 => t12) == (t21 => t22))
+    lemma neq Refl = neq Refl
+typeEq (t11 => t12)       (Tuple ts2)          = No (λ ())
+typeEq (t11 => t12)       (Variant ts2)        = No (λ ())
+--typeEq (t11 => t12)       (Rec t3)             = No (λ ())
+typeEq (Tuple ts1)        (TyVar tv2)          = No (λ ())
+typeEq (Tuple ts1)        (t21 => t22)         = No (λ ())
+typeEq (Tuple {n1} ts1)   (Tuple {n2} ts2)     with natEq n1 n2 
+typeEq (Tuple {n1} ts1)   (Tuple {.n1} ts2)    | Yes Refl with typeVectEq ts1 ts2
+typeEq (Tuple {n1} ts1)   (Tuple {.n1} .ts1)   | Yes Refl | Yes Refl = Yes Refl
+typeEq (Tuple {n1} ts1)   (Tuple {.n1} ts2)    | Yes Refl | No neq   = No (lemma neq)
+  where 
+    lemma : {n tn : nat} {ts1 ts2 : vect (type tn) n} -> not (ts1 == ts2) -> not (Tuple ts1 == Tuple ts2)
+    lemma neq Refl = neq Refl
+typeEq (Tuple {n1} ts1)   (Tuple {n2} ts2)     | No neq   = No (lemma neq)
+  where 
+    lemma : {n1 n2 tn : nat} {ts1 : vect (type tn) n1} {ts2 : vect (type tn) n2} -> not (n1 == n2) -> not (Tuple ts1 == Tuple ts2)
+    lemma neq Refl = neq Refl
+typeEq (Tuple ts1)        (Variant ts2)        = No (λ ())
+--typeEq (Tuple ts1)        (Rec t2)             = No (λ ())
+typeEq (Variant ts1)      (TyVar tv2)          = No (λ ())
+typeEq (Variant ts1)      (t21 => t22)         = No (λ ())
+typeEq (Variant ts1)      (Tuple ts2)          = No (λ ())
+typeEq (Variant {n1} ts1) (Variant {n2} ts2)   with natEq n1 n2 
+typeEq (Variant {n1} ts1) (Variant {.n1} ts2)  | Yes Refl with typeVectEq ts1 ts2
+typeEq (Variant {n1} ts1) (Variant {.n1} .ts1) | Yes Refl | Yes Refl = Yes Refl
+typeEq (Variant {n1} ts1) (Variant {.n1} ts2)  | Yes Refl | No neq   = No (lemma neq)
+  where 
+    lemma : {n tn : nat} {ts1 ts2 : vect (type tn) n} -> not (ts1 == ts2) -> not (Variant ts1 == Variant ts2)
+    lemma neq Refl = neq Refl
+typeEq (Variant {n1} ts1) (Variant {n2} ts2)   | No neq   = No (lemma neq)
+  where 
+    lemma : {n1 n2 tn : nat} {ts1 : vect (type tn) n1} {ts2 : vect (type tn) n2} -> not (n1 == n2) -> not (Variant ts1 == Variant ts2)
+    lemma neq Refl = neq Refl
+--typeEq (Variant ts1)      (Rec t2)             = No (λ ())
+--typeEq (Rec t1)           (TyVar tv2)          = No (λ ())
+--typeEq (Rec t1)           (t21 => t22)         = No (λ ())
+--typeEq (Rec t1)           (Tuple ts2)          = No (λ ())
+--typeEq (Rec t1)           (Variant ts2)        = No (λ ())
+--typeEq (Rec t1)           (Rec t2)             with typeEq t1 t2 
+--typeEq (Rec t1)           (Rec .t1)            | Yes Refl = Yes Refl
+--typeEq (Rec t1)           (Rec t2)             | No neq   = No (lemma neq)
+--  where 
+--    lemma : {tn : nat} {t1 t2 : type (Suc tn)} -> not (t1 == t2) -> not (Rec t1 == Rec t2)
+--    lemma neq Refl = neq Refl
+typeVectEq []          []            = Yes Refl
+typeVectEq (t1 :: ts1) (t2 :: ts2)   with typeEq t1 t2 | typeVectEq ts1 ts2
+typeVectEq (t1 :: ts1) (.t1 :: .ts1) | Yes Refl        | Yes Refl = Yes Refl
+typeVectEq (t1 :: ts1) (.t1 :: ts2)  | Yes Refl        | No neq   = No (lemma neq)
+  where 
+    lemma : {n tn : nat} {t1 : type tn} {ts1 ts2 : vect (type tn) n} -> not (ts1 == ts2) -> not (t1 :: ts1 == t1 :: ts2)
+    lemma neq Refl = neq Refl
+typeVectEq (t1 :: ts1) (t2 :: ts2)   | No neq          | _        = No (lemma neq)
+  where 
+    lemma : {n tn : nat} {t1 t2 : type tn} {ts1 ts2 : vect (type tn) n} -> not (t1 == t2) -> not (t1 :: ts1 == t2 :: ts2)
+    lemma neq Refl = neq Refl
