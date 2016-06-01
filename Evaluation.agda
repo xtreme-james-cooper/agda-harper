@@ -40,9 +40,9 @@ data eval {n} {tn} {gam} where
     {e : lam gam r (Variant ts)} {e' : lam gam r' (Variant ts)} {ps : pat t gam rp ts} -> eval e e' -> eval (Case e ps) (Case e' ps)
   EvalCase2 : {pn : nat} {t : type tn} {ts : vect (type tn) pn} {l : fin pn} {b1 b2 : bool} {r : rawlam n b1} {r' : rawlam n b2} {rp : rawpat n}
     {e : lam gam r (ts ! l)} {e' : lam gam r' t} {ps : pat t gam rp ts} -> evalPat l e ps e' -> eval (Case (Variant l e) ps) e'
-  EvalUnfold1 : {t : type (Suc tn)} {t2 : type tn} {b : bool} {r : rawlam n False} {r' : rawlam n b}
-    {e : lam gam r (Rec t)} {e' : lam gam r' (Rec t)} {eq : tsubst FZ (Rec t) t == t2} -> eval e e' -> eval (Unfold t e eq) (Unfold t e' eq)
-  EvalUnfold2 : {t : type (Suc tn)} {b : bool} {r : rawlam n b} {e : lam gam r (tsubst FZ (Rec t) t)} -> eval (Unfold t (Fold t e Refl) Refl) e
+--  EvalUnfold1 : {t : type (Suc tn)} {t2 : type tn} {b : bool} {r : rawlam n False} {r' : rawlam n b}
+--    {e : lam gam r (Rec t)} {e' : lam gam r' (Rec t)} {eq : tsubst FZ (Rec t) t == t2} -> eval e e' -> eval (Unfold t e eq) (Unfold t e' eq)
+--  EvalUnfold2 : {t : type (Suc tn)} {b : bool} {r : rawlam n b} {e : lam gam r (tsubst FZ (Rec t) t)} -> eval (Unfold t (Fold t e Refl) Refl) e
 data evalPat {n} {tn} {t} {gam} where
   EvalPat1 :  {pn : nat} {t2 : type tn} {ts : vect (type tn) pn} {b1 b2 b3 : bool} {r1 : rawlam n b1} {r2 : rawlam (Suc n) b2} {r3 : rawlam n b3} {rp : rawpat n} 
     {sub : rawsubst FZ r2 r1 == (b3 , r3)} {e1 : lam gam r1 t2} {e2 : lam (t2 :: gam) r2 t} {e3 : lam gam r3 t} {ps : pat t gam rp ts} ->
@@ -72,9 +72,9 @@ evaluate (Case {b = True} (Variant l e) ps)          with evaluatePat l e ps
 evaluate (Case {b = True} (Variant l e) ps)          | _ , _ , rev , e' , ev = _ , _ , EvalCase2 rev , e' , EvalCase2 ev
 evaluate (Case {b = False} e ps)                     with evaluate e
 evaluate (Case {b = False} e ps)                     | _ , _ , rev , e' , ev = False , _ , EvalCase1 rev , Case e' ps , EvalCase1 ev
-evaluate (Unfold t {b = True} (Fold .t e Refl) Refl) = _ , _ , EvalUnfold2 , e , EvalUnfold2
-evaluate (Unfold t {b = False} e Refl)               with evaluate e
-evaluate (Unfold t {b = False} e Refl)               | _ , _ ,  rev , e' , ev = False , _ , EvalUnfold1 rev , Unfold t e' Refl , EvalUnfold1 ev
+--evaluate (Unfold t {b = True} (Fold .t e Refl) Refl) = _ , _ , EvalUnfold2 , e , EvalUnfold2
+--evaluate (Unfold t {b = False} e Refl)               with evaluate e
+--evaluate (Unfold t {b = False} e Refl)               | _ , _ ,  rev , e' , ev = False , _ , EvalUnfold1 rev , Unfold t e' Refl , EvalUnfold1 ev
 evaluatePat ()     e1 Fail
 evaluatePat FZ     e1 (Match e2 p) with inspect (subst FZ e2 e1) 
 evaluatePat FZ     e1 (Match e2 p) | It (b , _ , req , e') eq = b , _ , EvalPat1 req , e' , EvalPat1 eq

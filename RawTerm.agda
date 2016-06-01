@@ -15,8 +15,8 @@ data rawlam n where
   Proj : {b : bool} -> rawlam n b -> nat -> rawlam n False
   Variant : {b : bool} -> nat -> rawlam n b -> rawlam n True
   Case : {b : bool} -> rawlam n b -> rawpat n -> rawlam n False
-  Fold : {b : bool} -> rawlam n b -> rawlam n True
-  Unfold : {b : bool} -> rawlam n b -> rawlam n False
+--  Fold : {b : bool} -> rawlam n b -> rawlam n True
+--  Unfold : {b : bool} -> rawlam n b -> rawlam n False
 data rawrec n where
   Unit : rawrec n True
   Field : {b1 b2 b3 : bool} -> rawlam n b1 -> rawrec n b2 -> b1 and b2 == b3 -> rawrec n b3
@@ -35,8 +35,8 @@ rawincr x (Tuple rec)   = Tuple (rawincrRec x rec)
 rawincr x (Proj e p)    = Proj (rawincr x e) p
 rawincr x (Variant l e) = Variant l (rawincr x e)
 rawincr x (Case e ps)   = Case (rawincr x e) (rawincrPat x ps)
-rawincr x (Fold e)      = Fold (rawincr x e)
-rawincr x (Unfold e)    = Unfold (rawincr x e)
+--rawincr x (Fold e)      = Fold (rawincr x e)
+--rawincr x (Unfold e)    = Unfold (rawincr x e)
 rawincrRec x Unit           = Unit
 rawincrRec x (Field e r pf) = Field (rawincr x e) (rawincrRec x r) pf
 rawincrPat x Fail         = Fail
@@ -62,10 +62,10 @@ rawsubst x (Variant l e) v with rawsubst x e v
 rawsubst x (Variant l e) v | _ , e' = _ , Variant l e'
 rawsubst x (Case e ps)   v with rawsubst x e v 
 rawsubst x (Case e ps)   v | _ , e' = _ , Case e' (rawsubstPat x ps v)
-rawsubst x (Fold e)      v with rawsubst x e v 
-rawsubst x (Fold e)      v | _ , e' = _ , Fold e'
-rawsubst x (Unfold e)    v with rawsubst x e v 
-rawsubst x (Unfold e)    v | _ , e' = _ , Unfold e'
+--rawsubst x (Fold e)      v with rawsubst x e v 
+--rawsubst x (Fold e)      v | _ , e' = _ , Fold e'
+--rawsubst x (Unfold e)    v with rawsubst x e v 
+--rawsubst x (Unfold e)    v | _ , e' = _ , Unfold e'
 rawsubstRec x Unit           v = _ , Unit
 rawsubstRec x (Field e r pf) v with rawsubst x e v | rawsubstRec x r v
 rawsubstRec x (Field e r pf) v | b1 , e' | b2 , rec' = (b1 and b2) , Field e' rec' Refl
@@ -81,21 +81,21 @@ rawunitE = Tuple Unit
 rawabortE : {n : nat} {b : bool} -> rawlam n b -> rawlam n False
 rawabortE e = Case e Fail
 
-rawzeroE : {n : nat} -> rawlam n True
-rawzeroE = Fold (Variant Zero rawunitE)
+--rawzeroE : {n : nat} -> rawlam n True
+--rawzeroE = Fold (Variant Zero rawunitE)
 
-rawsuccE : {n : nat} {b : bool} -> rawlam n b -> rawlam n True
-rawsuccE e = Fold (Variant (Suc Zero) e)
+--rawsuccE : {n : nat} {b : bool} -> rawlam n b -> rawlam n True
+--rawsuccE e = Fold (Variant (Suc Zero) e)
 
-rawnatcaseE : {n : nat} {b1 b2 b3 : bool} -> rawlam n b1 -> rawlam n b2 -> rawlam (Suc n) b3 -> rawlam n False
-rawnatcaseE e e0 es = Case (Unfold e) (Match (rawincr FZ e0) (Match es Fail))
+--rawnatcaseE : {n : nat} {b1 b2 b3 : bool} -> rawlam n b1 -> rawlam n b2 -> rawlam (Suc n) b3 -> rawlam n False
+--rawnatcaseE e e0 es = Case (Unfold e) (Match (rawincr FZ e0) (Match es Fail))
 
-rawnilE : {n : nat} -> rawlam n True
-rawnilE = Fold (Variant Zero rawunitE)
+--rawnilE : {n : nat} -> rawlam n True
+--rawnilE = Fold (Variant Zero rawunitE)
 
-rawconsE : {n : nat} {b1 b2 : bool} -> rawlam n b1 -> rawlam n b2 -> rawlam n True
-rawconsE a as = Fold (Variant (Suc Zero) (Tuple (Field a (Field as Unit Refl) Refl)))
+--rawconsE : {n : nat} {b1 b2 : bool} -> rawlam n b1 -> rawlam n b2 -> rawlam n True
+--rawconsE a as = Fold (Variant (Suc Zero) (Tuple (Field a (Field as Unit Refl) Refl)))
 
-rawlistcaseE : {n : nat} {b1 b2 b3 : bool} -> rawlam n b1 -> rawlam n b2 -> rawlam (Suc (Suc n)) b3 -> rawlam n False
-rawlistcaseE e en ec = Case (Unfold e) (Match (rawincr FZ en) (Match (App (App (rawincr FZ (Abs (Abs ec))) (Proj (Var FZ) Zero)) (Proj (Var FZ) (Suc Zero))) Fail))
+--rawlistcaseE : {n : nat} {b1 b2 b3 : bool} -> rawlam n b1 -> rawlam n b2 -> rawlam (Suc (Suc n)) b3 -> rawlam n False
+--rawlistcaseE e en ec = Case (Unfold e) (Match (rawincr FZ en) (Match (App (App (rawincr FZ (Abs (Abs ec))) (Proj (Var FZ) Zero)) (Proj (Var FZ) (Suc Zero))) Fail))
 

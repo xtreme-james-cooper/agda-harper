@@ -19,8 +19,8 @@ data lam {n} {tn} gam where
   Variant : {pn : nat} {ts : vect (type tn) pn} {b : bool} {r : rawlam n b} (l : fin pn) -> lam gam r (ts ! l) -> lam gam (Variant (naturalize l) r) (Variant ts)
   Case : {pn : nat} {t : type tn} {ts : vect (type tn) pn} {b : bool} {r : rawlam n b} {rp : rawpat n} -> 
     lam gam r (Variant ts) -> pat t gam rp ts -> lam gam (Case r rp) t
-  Fold : (t : type (Suc tn)) {t2 : type tn} {b : bool} {r : rawlam n b} -> lam gam r t2 -> tsubst FZ (Rec t) t == t2 -> lam gam (Fold r) (Rec t)
-  Unfold : (t : type (Suc tn)) {t2 : type tn} {b : bool} {r : rawlam n b} -> lam gam r (Rec t) -> tsubst FZ (Rec t) t == t2 -> lam gam (Unfold r) t2
+--  Fold : (t : type (Suc tn)) {t2 : type tn} {b : bool} {r : rawlam n b} -> lam gam r t2 -> tsubst FZ (Rec t) t == t2 -> lam gam (Fold r) (Rec t)
+--  Unfold : (t : type (Suc tn)) {t2 : type tn} {b : bool} {r : rawlam n b} -> lam gam r (Rec t) -> tsubst FZ (Rec t) t == t2 -> lam gam (Unfold r) t2
 data rec {n} {tn} gam where
   Unit : rec gam Unit []
   Field : {rn : nat} {t : type tn} {ts : vect (type tn) rn} {b1 b2 b3 : bool} {r : rawlam n b1} {rr : rawrec n b2} -> 
@@ -44,8 +44,8 @@ teincr             x (Proj {ts = ts} e p)    rewrite sym (tincrIdx x ts p) = Pro
 teincr             x (Variant {ts = ts} l e) with teincr x e
 teincr             x (Variant {ts = ts} l e) | e' rewrite sym (tincrIdx x ts l) = Variant l e'
 teincr             x (Case e ps)             = Case (teincr x e) (teincrPat x ps)
-teincr             x (Fold t {t2} e eq)      rewrite sym eq = Fold (tincr (FS x) t) (teincr x e) (tsubstIncr (Rec t) t x FZ >=FZ)
-teincr             x (Unfold t {t2} e eq)    rewrite sym eq = Unfold (tincr (FS x) t) (teincr x e) (tsubstIncr (Rec t) t x FZ >=FZ)
+--teincr             x (Fold t {t2} e eq)      rewrite sym eq = Fold (tincr (FS x) t) (teincr x e) (tsubstIncr (Rec t) t x FZ >=FZ)
+--teincr             x (Unfold t {t2} e eq)    rewrite sym eq = Unfold (tincr (FS x) t) (teincr x e) (tsubstIncr (Rec t) t x FZ >=FZ)
 teincrRec x Unit            = Unit
 teincrRec x (Field e rs pf) = Field (teincr x e) (teincrRec x rs) pf
 teincrPat x Fail         = Fail
@@ -66,8 +66,8 @@ tesubst             x t2 (Proj {ts = ts} e p)    rewrite sym (tsubstIdx x t2 ts 
 tesubst             x t2 (Variant {ts = ts} l e) with (tesubst x t2 e)
 tesubst             x t2 (Variant {ts = ts} l e) | e' rewrite sym (tsubstIdx x t2 ts l) = Variant l e'
 tesubst             x t2 (Case e ps)             = Case (tesubst x t2 e) (tesubstPat x t2 ps)
-tesubst             x t2 (Fold t e eq)           rewrite sym eq = Fold (tsubst (FS x) (tincr FZ t2) t) (tesubst x t2 e) (tsubstSwap t t2 (Rec t) x FZ >=FZ)
-tesubst             x t2 (Unfold t e eq)         rewrite sym eq = Unfold (tsubst (FS x) (tincr FZ t2) t) (tesubst x t2 e) (tsubstSwap t t2 (Rec t) x FZ >=FZ)
+--tesubst             x t2 (Fold t e eq)           rewrite sym eq = Fold (tsubst (FS x) (tincr FZ t2) t) (tesubst x t2 e) (tsubstSwap t t2 (Rec t) x FZ >=FZ)
+--tesubst             x t2 (Unfold t e eq)         rewrite sym eq = Unfold (tsubst (FS x) (tincr FZ t2) t) (tesubst x t2 e) (tsubstSwap t t2 (Rec t) x FZ >=FZ)
 tesubstRec x t2 Unit            = Unit
 tesubstRec x t2 (Field t ts pf) = Field (tesubst x t2 t) (tesubstRec x t2 ts) pf
 tesubstPat x t2 Fail         = Fail
@@ -86,8 +86,8 @@ incr             x (Tuple rec)     = Tuple (incrRec x rec)
 incr             x (Proj e p)      = Proj (incr x e) p
 incr             x (Variant l e)   = Variant l (incr x e)
 incr             x (Case e ps)     = Case (incr x e) (incrPat x ps)
-incr             x (Fold t e eq)   = Fold t (incr x e) eq
-incr             x (Unfold t e eq) = Unfold t (incr x e) eq
+--incr             x (Fold t e eq)   = Fold t (incr x e) eq
+--incr             x (Unfold t e eq) = Unfold t (incr x e) eq
 incrRec x Unit           = Unit
 incrRec x (Field e r pf) = Field (incr x e) (incrRec x r) pf
 incrPat x Fail         = Fail
@@ -116,10 +116,10 @@ subst                  x (Variant l e)   v with subst x e v
 subst                  x (Variant l e)   v | _ , _ , eq , e' rewrite eq = _ , _ , Refl , Variant l e'
 subst                  x (Case e ps)     v with subst x e v 
 subst                  x (Case e ps)     v | _ , _ , eq , e' rewrite eq = _ , _ , Refl , Case e' (substPat x ps v)
-subst                  x (Fold t e eq)   v with subst x e v 
-subst                  x (Fold t e eq)   v | _ , _ , eq' , e' rewrite eq' = _ , _ , Refl , Fold t e' eq
-subst                  x (Unfold t e eq) v with subst x e v 
-subst                  x (Unfold t e eq) v | _ , _ , eq' , e' rewrite eq' = _ , _ , Refl , Unfold t e' eq
+--subst                  x (Fold t e eq)   v with subst x e v 
+--subst                  x (Fold t e eq)   v | _ , _ , eq' , e' rewrite eq' = _ , _ , Refl , Fold t e' eq
+--subst                  x (Unfold t e eq) v with subst x e v 
+--subst                  x (Unfold t e eq) v | _ , _ , eq' , e' rewrite eq' = _ , _ , Refl , Unfold t e' eq
 substRec x Unit           v = _ , (_ , (Refl , Unit))
 substRec x (Field e r pf) v with subst x e v    | substRec x r v
 substRec x (Field e r pf) v | b1 , _ , eq1 , e' | b2 , _ , eq2 , rec' rewrite eq1 | eq2 = _ , _ , Refl , Field e' rec' Refl
@@ -135,33 +135,33 @@ unitE = Tuple Unit
 abortE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} {b : bool} {r : rawlam n b} -> lam gam r voidT -> lam gam (rawabortE r) t
 abortE e = Case e Fail
 
-zeroE : {n tn : nat} {gam : vect (type tn) n} -> lam gam rawzeroE natT
-zeroE = Fold natT' (Variant FZ unitE) Refl
+--zeroE : {n tn : nat} {gam : vect (type tn) n} -> lam gam rawzeroE natT
+--zeroE = Fold natT' (Variant FZ unitE) Refl
 
-succE : {n tn : nat} {gam : vect (type tn) n} {b : bool} {r : rawlam n b} -> lam gam r natT -> lam gam (rawsuccE r) natT
-succE e = Fold natT' (Variant (FS FZ) e) Refl
+--succE : {n tn : nat} {gam : vect (type tn) n} {b : bool} {r : rawlam n b} -> lam gam r natT -> lam gam (rawsuccE r) natT
+--succE e = Fold natT' (Variant (FS FZ) e) Refl
 
-natcaseE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} {b1 b2 b3 : bool} {r1 : rawlam n b1} {r2 : rawlam n b2} {r3 : rawlam (Suc n) b3} -> 
-  lam gam r1 natT -> lam gam r2 t -> lam (natT :: gam) r3 t -> lam gam (rawnatcaseE r1 r2 r3) t
-natcaseE e e0 es = Case (Unfold natT' e Refl) (Match (incr FZ e0) (Match es Fail))
+--natcaseE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} {b1 b2 b3 : bool} {r1 : rawlam n b1} {r2 : rawlam n b2} {r3 : rawlam (Suc n) b3} -> 
+--  lam gam r1 natT -> lam gam r2 t -> lam (natT :: gam) r3 t -> lam gam (rawnatcaseE r1 r2 r3) t
+--natcaseE e e0 es = Case (Unfold natT' e Refl) (Match (incr FZ e0) (Match es Fail))
 
-nilE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} -> lam gam rawnilE (listT t)
-nilE {t = t} = Fold (listT' t) (Variant FZ unitE) Refl
+--nilE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} -> lam gam rawnilE (listT t)
+--nilE {t = t} = Fold (listT' t) (Variant FZ unitE) Refl
 
-listTLemma : {tn : nat} (t : type tn) -> tsubst FZ (listT t) (tincr FZ t) == t
-listTLemma t = tsubstIncrCollapse FZ t (listT t)
+--listTLemma : {tn : nat} (t : type tn) -> tsubst FZ (listT t) (tincr FZ t) == t
+--listTLemma t = tsubstIncrCollapse FZ t (listT t)
 
-consE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} {b1 b2 : bool} {r1 : rawlam n b1} {r2 : rawlam n b2} -> 
-  lam gam r1 t -> lam gam r2 (listT t) -> lam gam (rawconsE r1 r2) (listT t)
-consE {n} {tn} {gam} {t} {b1} {b2} {r1} a as rewrite listTLemma t = Fold (listT' t) (Variant (FS FZ) (Tuple (Field a' (Field as Unit Refl) Refl))) Refl
-  where
-    a' : lam gam r1 (tsubst FZ (listT t) (tincr FZ t))
-    a' rewrite listTLemma t = a
+--consE : {n tn : nat} {gam : vect (type tn) n} {t : type tn} {b1 b2 : bool} {r1 : rawlam n b1} {r2 : rawlam n b2} -> 
+--  lam gam r1 t -> lam gam r2 (listT t) -> lam gam (rawconsE r1 r2) (listT t)
+--consE {n} {tn} {gam} {t} {b1} {b2} {r1} a as rewrite listTLemma t = Fold (listT' t) (Variant (FS FZ) (Tuple (Field a' (Field as Unit Refl) Refl))) Refl
+--  where
+--    a' : lam gam r1 (tsubst FZ (listT t) (tincr FZ t))
+--    a' rewrite listTLemma t = a
 
-listcaseE : {n tn : nat} {gam : vect (type tn) n} {a t : type tn} {b1 b2 b3 : bool} {r1 : rawlam n b1} {r2 : rawlam n b2} {r3 : rawlam (Suc (Suc n)) b3} -> 
-  lam gam r1 (listT a) -> lam gam r2 t -> lam (listT a :: (a :: gam)) r3 t -> lam gam (rawlistcaseE r1 r2 r3) t
-listcaseE {n} {tn} {gam} {a} {t} e en ec = 
-  Case (Unfold (listT' a) e Refl) (Match (incr FZ en) (Match (App (App (incr FZ (Abs (Abs ec))) (Proj (Var FZ eq) FZ)) (Proj (Var FZ Refl) (FS FZ))) Fail))
-  where
-    eq : Tuple (tsubst FZ (listT a) (tincr FZ a) :: listT a :: []) == Tuple (a :: listT a :: [])
-    eq = funEq (λ x -> Tuple (x :: listT a :: [])) (listTLemma a)
+--listcaseE : {n tn : nat} {gam : vect (type tn) n} {a t : type tn} {b1 b2 b3 : bool} {r1 : rawlam n b1} {r2 : rawlam n b2} {r3 : rawlam (Suc (Suc n)) b3} -> 
+--  lam gam r1 (listT a) -> lam gam r2 t -> lam (listT a :: (a :: gam)) r3 t -> lam gam (rawlistcaseE r1 r2 r3) t
+--listcaseE {n} {tn} {gam} {a} {t} e en ec = 
+--  Case (Unfold (listT' a) e Refl) (Match (incr FZ en) (Match (App (App (incr FZ (Abs (Abs ec))) (Proj (Var FZ eq) FZ)) (Proj (Var FZ Refl) (FS FZ))) Fail))
+--  where
+--    eq : Tuple (tsubst FZ (listT a) (tincr FZ a) :: listT a :: []) == Tuple (a :: listT a :: [])
+--    eq = funEq (λ x -> Tuple (x :: listT a :: [])) (listTLemma a)

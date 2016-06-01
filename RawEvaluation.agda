@@ -24,8 +24,8 @@ data raweval {n} where
   EvalProj2 : {b1 b2 : bool} {r : rawrec n b1} {p : nat} {e : rawlam n b2} -> (r rawlookup p) == Some (b2 , e) -> raweval (Proj (Tuple r) p) e
   EvalCase1 : {b : bool} {e : rawlam n False} {e' : rawlam n b} {ps : rawpat n} -> raweval e e' -> raweval (Case e ps) (Case e' ps)
   EvalCase2 : {l : nat} {b1 b2 : bool} {e : rawlam n b1} {e' : rawlam n b2} {ps : rawpat n} -> rawevalPat l e ps e' -> raweval (Case (Variant l e) ps) e'
-  EvalUnfold1 : {b : bool} {e : rawlam n False} {e' : rawlam n b} -> raweval e e' -> raweval (Unfold e) (Unfold e')
-  EvalUnfold2 : {b : bool} {e : rawlam n b} -> raweval (Unfold (Fold e)) e
+--  EvalUnfold1 : {b : bool} {e : rawlam n False} {e' : rawlam n b} -> raweval e e' -> raweval (Unfold e) (Unfold e')
+--  EvalUnfold2 : {b : bool} {e : rawlam n b} -> raweval (Unfold (Fold e)) e
 data rawevalPat {n} where
   EvalPat1 :  {b1 b2 b3 : bool} {e1 : rawlam n b1} {e2 : rawlam (Suc n) b2} {e3 : rawlam n b3} {ps : rawpat n} -> 
     rawsubst FZ e2 e1 == (b3 , e3) -> rawevalPat Zero e1 (Match e2 ps) e3
