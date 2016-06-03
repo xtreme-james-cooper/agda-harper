@@ -11,80 +11,127 @@ open import Term
 typeSubstitution : nat -> nat -> Set
 typeSubstitution n m = vect (type m) n 
 
-tapplyTsubst : {tn tn' : nat} -> typeSubstitution tn tn' -> type tn -> type tn'
-tapplyTsubstVect : {n tn tn' : nat} -> typeSubstitution tn tn' -> vect (type tn) n -> vect (type tn') n
-tapplyTsubst sub (TyVar tv)   = sub ! tv
-tapplyTsubst sub (t1 => t2)   = tapplyTsubst sub t1 => tapplyTsubst sub t2
-tapplyTsubst sub (Tuple ts)   = Tuple (tapplyTsubstVect sub ts)
-tapplyTsubst sub (Variant ts) = Variant (tapplyTsubstVect sub ts)
-tapplyTsubst sub (Rec t)      = Rec (tapplyTsubst (TyVar FZ :: map (tincr FZ) sub) t)
-tapplyTsubstVect sub []        = []
-tapplyTsubstVect sub (t :: ts) = tapplyTsubst sub t :: tapplyTsubstVect sub ts
+applyTsubst : {tn tn' : nat} -> typeSubstitution tn tn' -> type tn -> type tn'
+applyTsubstVect : {n tn tn' : nat} -> typeSubstitution tn tn' -> vect (type tn) n -> vect (type tn') n
+applyTsubst sub (TyVar tv)   = sub ! tv
+applyTsubst sub (t1 => t2)   = applyTsubst sub t1 => applyTsubst sub t2
+applyTsubst sub (Tuple ts)   = Tuple (applyTsubstVect sub ts)
+applyTsubst sub (Variant ts) = Variant (applyTsubstVect sub ts)
+applyTsubstVect sub []        = []
+applyTsubstVect sub (t :: ts) = applyTsubst sub t :: applyTsubstVect sub ts
 
-applySubstIncr : {tn tn' : nat} (x : fin (Suc tn')) (y : fin (Suc tn)) (t : type tn) (sub : typeSubstitution tn tn') -> 
-  tapplyTsubst (insertAt y (map (tincr x) sub) (TyVar x)) (tincr y t) == tincr x (tapplyTsubst sub t)
-applySubstIncrVect : {tn tn' n : nat} (x : fin (Suc tn')) (y : fin (Suc tn)) (t : vect (type tn) n) (sub : typeSubstitution tn tn') -> 
-  tapplyTsubstVect (insertAt y (map (tincr x) sub) (TyVar x)) (tincrVect y t) == tincrVect x (tapplyTsubstVect sub t)
-applySubstIncr x y (TyVar z) sub    rewrite insertAtFincr (map (tincr x) sub) z y (TyVar x) | mapLookup (tincr x) sub z = Refl
-applySubstIncr x y (t1 => t2) sub   rewrite applySubstIncr x y t1 sub | applySubstIncr x y t2 sub = Refl
-applySubstIncr x y (Tuple ts) sub   rewrite applySubstIncrVect x y ts sub = Refl
-applySubstIncr x y (Variant ts) sub rewrite applySubstIncrVect x y ts sub = Refl
-applySubstIncr x y (Rec t) sub      
-  rewrite mapInsertAt (map (tincr x) sub) (TyVar x) (tincr FZ) y | tincrSwapMap sub x FZ >=FZ | sym (applySubstIncr (FS x) (FS y) t (TyVar FZ :: map (tincr FZ) sub)) = Refl
-applySubstIncrVect x y [] sub        = Refl
-applySubstIncrVect x y (t :: ts) sub rewrite applySubstIncr x y t sub | applySubstIncrVect x y ts sub = Refl
+tsubstComp : {tn tn' tn'' : nat} -> typeSubstitution tn' tn'' -> typeSubstitution tn tn' -> typeSubstitution tn tn''
+tsubstComp sub2 = map (applyTsubst sub2)
 
-applySubstSubstSwap : {tn tn' : nat} (x : fin (Suc tn)) (y : fin (Suc tn')) (t1 : type tn) (t2 : type (Suc tn)) (sub : typeSubstitution tn tn') ->
-  tsubst y (tapplyTsubst sub t1) (tapplyTsubst (insertAt x (map (tincr y) sub) (TyVar y)) t2) == tapplyTsubst sub (tsubst x t1 t2)
-applySubstSubstSwapVect : {n tn tn' : nat} (x : fin (Suc tn)) (y : fin (Suc tn')) (t1 : type tn) (ts : vect (type (Suc tn)) n) (sub : typeSubstitution tn tn') ->
-  tsubstVect y (tapplyTsubst sub t1) (tapplyTsubstVect (insertAt x (map (tincr y) sub) (TyVar y)) ts) == tapplyTsubstVect sub (tsubstVect x t1 ts)
-applySubstSubstSwap x y t1 (TyVar z)    sub with finEq z x
-applySubstSubstSwap x y t1 (TyVar .x)   sub | Yes Refl rewrite lookupInsertAt (map (tincr y) sub) x (TyVar y) | finEqRefl y = Refl
-applySubstSubstSwap x y t1 (TyVar z)    sub | No neq   
-  rewrite lookupInsertAtNeq (map (tincr y) sub) x z (TyVar y) neq | mapLookup (tincr y) sub (fdecr x z neq) 
-    | tsubstIncrCollapse y (sub ! fdecr x z neq) (tapplyTsubst sub t1) = Refl
-applySubstSubstSwap x y t1 (t21 => t22) sub rewrite applySubstSubstSwap x y t1 t21 sub | applySubstSubstSwap x y t1 t22 sub = Refl
-applySubstSubstSwap x y t1 (Tuple ts)   sub rewrite applySubstSubstSwapVect x y t1 ts sub = Refl
-applySubstSubstSwap x y t1 (Variant ts) sub rewrite applySubstSubstSwapVect x y t1 ts sub = Refl
-applySubstSubstSwap x y t1 (Rec t2)     sub 
-  rewrite sym (applySubstSubstSwap (FS x) (FS y) (tincr FZ t1) t2 (TyVar FZ :: map (tincr FZ) sub)) | mapInsertAt (map (tincr y) sub) (TyVar y) (tincr FZ) x 
-    | tincrSwapMap sub y FZ >=FZ | sym (applySubstIncr FZ FZ t1 sub) = Refl 
-applySubstSubstSwapVect x y t1 []         sub = Refl
-applySubstSubstSwapVect x y t1 (t2 :: ts) sub rewrite applySubstSubstSwap x y t1 t2 sub | applySubstSubstSwapVect x y t1 ts sub = Refl
+tsubstCompIsComp : {tn tn' tn'' : nat} (sub2 : typeSubstitution tn' tn'') (sub1 : typeSubstitution tn tn') (t : type tn) -> 
+  applyTsubst (tsubstComp sub2 sub1) t == applyTsubst sub2 (applyTsubst sub1 t)
+tsubstCompIsCompVect : {n tn tn' tn'' : nat} (sub2 : typeSubstitution tn' tn'') (sub1 : typeSubstitution tn tn') (ts : vect (type tn) n) -> 
+  applyTsubstVect (tsubstComp sub2 sub1) ts == applyTsubstVect sub2 (applyTsubstVect sub1 ts)
+tsubstCompIsComp sub2 sub1 (TyVar tv)   rewrite mapLookup (applyTsubst sub2) sub1 tv = Refl
+tsubstCompIsComp sub2 sub1 (t1 => t2)   rewrite tsubstCompIsComp sub2 sub1 t1 | tsubstCompIsComp sub2 sub1 t2 = Refl
+tsubstCompIsComp sub2 sub1 (Tuple ts)   rewrite tsubstCompIsCompVect sub2 sub1 ts = Refl
+tsubstCompIsComp sub2 sub1 (Variant ts) rewrite tsubstCompIsCompVect sub2 sub1 ts = Refl
+tsubstCompIsCompVect sub2 sub1 []        = Refl
+tsubstCompIsCompVect sub2 sub1 (t :: ts) rewrite tsubstCompIsComp sub2 sub1 t | tsubstCompIsCompVect sub2 sub1 ts = Refl
 
-applySubstLemma : {tn tn' : nat} (t : type (Suc tn)) {t2 : type tn} {sub : typeSubstitution tn tn'} -> tsubst FZ (Rec t) t == t2 -> 
-  tsubst FZ (Rec (tapplyTsubst (TyVar FZ :: map (tincr FZ) sub) t)) (tapplyTsubst (TyVar FZ :: map (tincr FZ) sub) t) == tapplyTsubst sub t2
-applySubstLemma t {t2} {sub} eq rewrite sym eq = applySubstSubstSwap FZ FZ (Rec t) t sub
+idSubst : {tn : nat} -> typeSubstitution tn tn
+idSubst {Zero}   = []
+idSubst {Suc tn} = TyVar FZ :: map (tincr FZ) idSubst
 
-tapplyTsubstLookup : {n tn tn' : nat} (sub : typeSubstitution tn tn') (ts : vect (type tn) n) (l : fin n) -> (tapplyTsubstVect sub ts ! l) == tapplyTsubst sub (ts ! l)
-tapplyTsubstLookup sub []        ()
-tapplyTsubstLookup sub (t :: ts) FZ     = Refl
-tapplyTsubstLookup sub (t :: ts) (FS l) rewrite tapplyTsubstLookup sub ts l = Refl
+deltaSubst : {tn : nat} -> fin tn -> type tn -> typeSubstitution tn tn
+deltaSubst x t = replace x idSubst t
 
-applyTsubst : {n tn tn' : nat} (sub : typeSubstitution tn tn') {gam : vect (type tn) n} {b : bool} {r : rawlam n b} {t : type tn} -> 
-  lam gam r t -> lam (map (tapplyTsubst sub) gam) r (tapplyTsubst sub t)
-applyTsubstRec : {n tn tn' rn : nat} (sub : typeSubstitution tn tn') {gam : vect (type tn) n} {b : bool} {r : rawrec n b} {ts : vect (type tn) rn} -> 
-  rec gam r ts -> rec (map (tapplyTsubst sub) gam) r (tapplyTsubstVect sub ts)
-applyTsubstPat : {n tn tn' pn : nat} (sub : typeSubstitution tn tn') {t : type tn} {gam : vect (type tn) n} {r : rawpat n} {ts : vect (type tn) pn} -> 
-  pat t gam r ts -> pat (tapplyTsubst sub t) (map (tapplyTsubst sub) gam) r (tapplyTsubstVect sub ts)
-applyTsubst sub {gam} (Var x eq)              rewrite sym eq = Var x (mapLookup (tapplyTsubst sub) gam x)
-applyTsubst sub       (App e1 e2)             = App (applyTsubst sub e1) (applyTsubst sub e2)
-applyTsubst sub       (Abs e)                 = Abs (applyTsubst sub e)
-applyTsubst sub       (Let e1 e2)             = Let (applyTsubst sub e1) (applyTsubst sub e2)
-applyTsubst sub       (Tuple r)               = Tuple (applyTsubstRec sub r)
-applyTsubst sub {gam} (Proj {ts = ts} e p)    rewrite sym (tapplyTsubstLookup sub ts p) = Proj (applyTsubst sub e) p
-applyTsubst sub {gam} (Variant {ts = ts} l e) = Variant l e'
-  where 
-    e' : lam (map (tapplyTsubst sub) gam) _ (tapplyTsubstVect sub ts ! l)
-    e' rewrite tapplyTsubstLookup sub ts l = applyTsubst sub e
-applyTsubst sub       (Case e p)              = Case (applyTsubst sub e) (applyTsubstPat sub p)
-applyTsubst sub       (Fold t e eq)           = Fold (tapplyTsubst (TyVar FZ :: map (tincr FZ) sub) t) (applyTsubst sub e) (applySubstLemma t eq)
-applyTsubst sub       (Unfold t e eq)         = Unfold (tapplyTsubst (TyVar FZ :: map (tincr FZ) sub) t) (applyTsubst sub e) (applySubstLemma t eq)
-applyTsubstRec sub Unit = Unit
-applyTsubstRec sub (Field e r pf) = Field (applyTsubst sub e) (applyTsubstRec sub r) pf
-applyTsubstPat sub Fail = Fail
-applyTsubstPat sub (Match e p) = Match (applyTsubst sub e) (applyTsubstPat sub p)
+data idempotent {tn : nat} (sub : typeSubstitution tn tn) : Set where
+  Idempotent : tsubstComp sub sub == sub -> idempotent sub
 
-tsubstComp : {tn tn' tn'' : nat} -> typeSubstitution tn tn' -> typeSubstitution tn' tn'' -> typeSubstitution tn tn''
-tsubstComp []          sub2 = []
-tsubstComp (t :: sub1) sub2 = tapplyTsubst sub2 t :: tsubstComp sub1 sub2
+data _fixedPoint_ : {tn : nat} -> type tn -> typeSubstitution tn tn -> Set where
+  Fixed : {tn : nat} (t : type tn) (sub : typeSubstitution tn tn) -> applyTsubst sub t == t -> t fixedPoint sub
+
+_unmoved_ : {tn : nat} -> fin tn -> typeSubstitution tn tn -> Set
+tv unmoved sub = TyVar tv fixedPoint sub
+
+data unifier {tn tn' : nat} (t1 t2 : type tn) (sub : typeSubstitution tn tn') : Set where
+  Unifer : applyTsubst sub t1 == applyTsubst sub t2 -> unifier t1 t2 sub
+
+data _extends_ {tn tn' tn'' : nat} (sub' : typeSubstitution tn tn'') (sub : typeSubstitution tn tn') : Set where
+  Extends : (sub'' : typeSubstitution tn' tn'') -> sub' == tsubstComp sub'' sub -> sub' extends sub
+
+data mostGeneralUnifier {tn tn' : nat} (t1 t2 : type tn) (sub : typeSubstitution tn tn') : Set where
+  MostGeneral : unifier t1 t2 sub -> ({tn'' : nat} (sub' : typeSubstitution tn tn'') -> unifier t1 t2 sub' -> sub' extends sub) -> mostGeneralUnifier t1 t2 sub
+
+occursSize : {tn : nat} -> type tn -> nat
+occursSizeVect : {n tn : nat} -> vect (type tn) n -> nat
+occursSize (TyVar x)    = Zero
+occursSize (t1 => t2)   = Suc (occursSize t1 + occursSize t2)
+occursSize (Tuple ts)   = Suc (occursSizeVect ts)
+occursSize (Variant ts) = Suc (occursSizeVect ts)
+occursSizeVect []        = Zero
+occursSizeVect (t :: ts) = Suc (occursSize t + occursSizeVect ts)
+
+sizeLemma : {tn : nat} (tv : fin tn) (t : type tn) (sub : typeSubstitution tn tn) -> 
+  occursSize (applyTsubst sub t) > occursSize t \/ occursSize (applyTsubst sub t) == occursSize t
+sizeLemmaVect : {n tn : nat} (tv : fin tn) (ts : vect (type tn) n) (sub : typeSubstitution tn tn) -> 
+  occursSizeVect (applyTsubstVect sub ts) > occursSizeVect ts \/ occursSizeVect (applyTsubstVect sub ts) == occursSizeVect ts
+sizeLemma tv (TyVar x)    sub with occursSize (sub ! x)
+sizeLemma tv (TyVar x)    sub | Zero  = InR Refl
+sizeLemma tv (TyVar x)    sub | Suc n = InL (S>Z n)
+sizeLemma tv (t1 => t2)   sub with sizeLemma tv t1 sub | sizeLemma tv t2 sub
+sizeLemma tv (t1 => t2)   sub | InL gt | InL gt2 = InL (S>S _ _ (gtPlusBoth gt gt2))
+sizeLemma tv (t1 => t2)   sub | InL gt | InR eq  rewrite eq = InL (S>S _ _ (gtPlusAfter _ gt))
+sizeLemma tv (t1 => t2)   sub | InR eq | InL gt  rewrite eq = InL (S>S _ _ (gtPlusBefore (occursSize t1) gt))
+sizeLemma tv (t1 => t2)   sub | InR eq | InR eq2 rewrite eq | eq2 = InR Refl
+sizeLemma tv (Tuple ts)   sub with sizeLemmaVect tv ts sub 
+sizeLemma tv (Tuple ts)   sub | InL gt = InL (S>S _ _ gt)
+sizeLemma tv (Tuple ts)   sub | InR eq rewrite eq = InR Refl
+sizeLemma tv (Variant ts) sub with sizeLemmaVect tv ts sub 
+sizeLemma tv (Variant ts) sub | InL gt = InL (S>S _ _ gt)
+sizeLemma tv (Variant ts) sub | InR eq rewrite eq = InR Refl
+sizeLemmaVect tv []        sub = InR Refl
+sizeLemmaVect tv (t :: ts) sub with sizeLemma tv t sub | sizeLemmaVect tv ts sub
+sizeLemmaVect tv (t :: ts) sub | InL gt | InL gt2 = InL (S>S _ _ (gtPlusBoth gt gt2))
+sizeLemmaVect tv (t :: ts) sub | InL gt | InR eq  rewrite eq = InL (S>S _ _ (gtPlusAfter _ gt))
+sizeLemmaVect tv (t :: ts) sub | InR eq | InL gt  rewrite eq = InL (S>S _ _ (gtPlusBefore (occursSize t) gt))
+sizeLemmaVect tv (t :: ts) sub | InR eq | InR eq2 rewrite eq | eq2 = InR Refl
+
+occursLemma : {tn : nat} (tv : fin tn) (t : type tn) (sub : typeSubstitution tn tn) -> contains tv t -> not (fin tn * λ x -> sub ! tv == TyVar x) -> 
+  occursSize (applyTsubst sub t) > occursSize t
+occursLemmaVect : {n tn : nat} (tv : fin tn) (t : vect (type tn) n) (sub : typeSubstitution tn tn) -> containsVect tv t -> not (fin tn * λ x -> sub ! tv == TyVar x) -> 
+  occursSizeVect (applyTsubstVect sub t) > occursSizeVect t
+occursLemma tv _ sub TyVarCont               ntv with sub ! tv 
+occursLemma tv _ sub TyVarCont               ntv | TyVar x    with ntv (x , Refl) 
+occursLemma tv _ sub TyVarCont               ntv | TyVar x    | ()
+occursLemma tv _ sub TyVarCont               ntv | t1 => t2   = S>Z _
+occursLemma tv _ sub TyVarCont               ntv | Tuple ts   = S>Z _
+occursLemma tv _ sub TyVarCont               ntv | Variant ts = S>Z _
+occursLemma tv _ sub (ArrowCont1 t1 t2 cont) ntv with sizeLemma tv t2 sub
+occursLemma tv _ sub (ArrowCont1 t1 t2 cont) ntv | InL gt = S>S _ _ (gtPlusBoth (occursLemma tv t1 sub cont ntv) gt)
+occursLemma tv _ sub (ArrowCont1 t1 t2 cont) ntv | InR eq rewrite eq = S>S _ _ (gtPlusAfter _ (occursLemma tv t1 sub cont ntv ))
+occursLemma tv _ sub (ArrowCont2 t1 t2 cont) ntv with sizeLemma tv t1 sub
+occursLemma tv _ sub (ArrowCont2 t1 t2 cont) ntv | InL gt = S>S _ _ (gtPlusBoth gt (occursLemma tv t2 sub cont ntv))
+occursLemma tv _ sub (ArrowCont2 t1 t2 cont) ntv | InR eq rewrite eq = S>S _ _ (gtPlusBefore (occursSize t1) (occursLemma tv t2 sub cont ntv ))
+occursLemma tv _ sub (TupleCont ts x)        ntv = S>S _ _ (occursLemmaVect tv ts sub x ntv)
+occursLemma tv _ sub (VariantCont ts x)      ntv = S>S _ _ (occursLemmaVect tv ts sub x ntv)
+occursLemmaVect tv _ sub (ConsCont1 t ts cont) ntv with sizeLemmaVect tv ts sub
+occursLemmaVect tv _ sub (ConsCont1 t ts cont) ntv | InL gt = S>S _ _ (gtPlusBoth (occursLemma tv t sub cont ntv) gt)
+occursLemmaVect tv _ sub (ConsCont1 t ts cont) ntv | InR eq rewrite eq = S>S _ _ (gtPlusAfter (occursSizeVect ts) (occursLemma tv t sub cont ntv))
+occursLemmaVect tv _ sub (ConsCont2 t ts cont) ntv with sizeLemma tv t sub
+occursLemmaVect tv _ sub (ConsCont2 t ts cont) ntv | InL gt = S>S _ _ (gtPlusBoth gt (occursLemmaVect tv ts sub cont ntv))
+occursLemmaVect tv _ sub (ConsCont2 t ts cont) ntv | InR eq rewrite eq = S>S _ _ (gtPlusBefore (occursSize t) (occursLemmaVect tv ts sub cont ntv))
+
+occursCheck : {tn : nat} (tv : fin tn) (t : type tn) (sub : typeSubstitution tn tn) -> contains tv t -> unifier (TyVar tv) t sub -> t == TyVar tv
+occursCheck tv .(TyVar tv)   sub TyVarCont               (Unifer eq) = Refl
+occursCheck tv .(t1 => t2)   sub (ArrowCont1 t1 t2 cont) (Unifer eq) = {!!}
+occursCheck tv .(t1 => t2)   sub (ArrowCont2 t1 t2 cont) (Unifer eq) = {!!}
+occursCheck tv .(Tuple ts)   sub (TupleCont ts x)        (Unifer eq) = {!!}
+occursCheck tv .(Variant ts) sub (VariantCont ts x)      (Unifer eq) = {!!}
+
+extend : {tn : nat} (sub : typeSubstitution tn tn) (tv : fin tn) (t : type tn) -> idempotent sub -> t fixedPoint sub -> tv unmoved sub -> 
+  decide (typeSubstitution tn tn * λ sub' -> idempotent sub' × (sub' extends sub) × unifier (TyVar tv) t sub')
+extend sub tv t  (Idempotent id) (Fixed .t .sub fx) (Fixed ._ .sub fx2) with typeEq t (TyVar tv)
+extend sub tv ._ (Idempotent id) (Fixed ._ .sub fx) (Fixed ._ .sub fx2) | Yes Refl = 
+  Yes (sub , Idempotent id , Extends sub (sym id) , Unifer Refl)
+extend sub tv t  (Idempotent id) (Fixed .t .sub fx) (Fixed ._ .sub fx2) | No neq with tv ∈ t
+extend sub tv t  (Idempotent id) (Fixed .t .sub fx) (Fixed ._ .sub fx2) | No neq | Yes i = No (λ { (sub , _ , _ , u) -> neq (occursCheck tv t sub i u) })
+extend sub tv t  (Idempotent id) (Fixed .t .sub fx) (Fixed ._ .sub fx2) | No neq | No ni = 
+  Yes (tsubstComp (deltaSubst tv t) sub , Idempotent {!!} , Extends (deltaSubst tv t) Refl , Unifer {!!})
+
