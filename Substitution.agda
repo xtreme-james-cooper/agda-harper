@@ -68,62 +68,31 @@ occursSize (Variant ts) = Suc (occursSizeVect ts)
 occursSizeVect []        = Zero
 occursSizeVect (t :: ts) = Suc (occursSize t + occursSizeVect ts)
 
-sizeLemma : {tn : nat} (tv : fin tn) (t : type tn) (sub : typeSubstitution tn tn) -> 
-  occursSize (applyTsubst sub t) > occursSize t \/ occursSize (applyTsubst sub t) == occursSize t
-sizeLemmaVect : {n tn : nat} (tv : fin tn) (ts : vect (type tn) n) (sub : typeSubstitution tn tn) -> 
-  occursSizeVect (applyTsubstVect sub ts) > occursSizeVect ts \/ occursSizeVect (applyTsubstVect sub ts) == occursSizeVect ts
-sizeLemma tv (TyVar x)    sub with occursSize (sub ! x)
-sizeLemma tv (TyVar x)    sub | Zero  = InR Refl
-sizeLemma tv (TyVar x)    sub | Suc n = InL (S>Z n)
-sizeLemma tv (t1 => t2)   sub with sizeLemma tv t1 sub | sizeLemma tv t2 sub
-sizeLemma tv (t1 => t2)   sub | InL gt | InL gt2 = InL (S>S _ _ (gtPlusBoth gt gt2))
-sizeLemma tv (t1 => t2)   sub | InL gt | InR eq  rewrite eq = InL (S>S _ _ (gtPlusAfter _ gt))
-sizeLemma tv (t1 => t2)   sub | InR eq | InL gt  rewrite eq = InL (S>S _ _ (gtPlusBefore (occursSize t1) gt))
-sizeLemma tv (t1 => t2)   sub | InR eq | InR eq2 rewrite eq | eq2 = InR Refl
-sizeLemma tv (Tuple ts)   sub with sizeLemmaVect tv ts sub 
-sizeLemma tv (Tuple ts)   sub | InL gt = InL (S>S _ _ gt)
-sizeLemma tv (Tuple ts)   sub | InR eq rewrite eq = InR Refl
-sizeLemma tv (Variant ts) sub with sizeLemmaVect tv ts sub 
-sizeLemma tv (Variant ts) sub | InL gt = InL (S>S _ _ gt)
-sizeLemma tv (Variant ts) sub | InR eq rewrite eq = InR Refl
-sizeLemmaVect tv []        sub = InR Refl
-sizeLemmaVect tv (t :: ts) sub with sizeLemma tv t sub | sizeLemmaVect tv ts sub
-sizeLemmaVect tv (t :: ts) sub | InL gt | InL gt2 = InL (S>S _ _ (gtPlusBoth gt gt2))
-sizeLemmaVect tv (t :: ts) sub | InL gt | InR eq  rewrite eq = InL (S>S _ _ (gtPlusAfter _ gt))
-sizeLemmaVect tv (t :: ts) sub | InR eq | InL gt  rewrite eq = InL (S>S _ _ (gtPlusBefore (occursSize t) gt))
-sizeLemmaVect tv (t :: ts) sub | InR eq | InR eq2 rewrite eq | eq2 = InR Refl
-
-occursLemma : {tn : nat} (tv : fin tn) (t : type tn) (sub : typeSubstitution tn tn) -> contains tv t -> not (fin tn * λ x -> sub ! tv == TyVar x) -> 
-  occursSize (applyTsubst sub t) > occursSize t
-occursLemmaVect : {n tn : nat} (tv : fin tn) (t : vect (type tn) n) (sub : typeSubstitution tn tn) -> containsVect tv t -> not (fin tn * λ x -> sub ! tv == TyVar x) -> 
-  occursSizeVect (applyTsubstVect sub t) > occursSizeVect t
-occursLemma tv _ sub TyVarCont               ntv with sub ! tv 
-occursLemma tv _ sub TyVarCont               ntv | TyVar x    with ntv (x , Refl) 
-occursLemma tv _ sub TyVarCont               ntv | TyVar x    | ()
-occursLemma tv _ sub TyVarCont               ntv | t1 => t2   = S>Z _
-occursLemma tv _ sub TyVarCont               ntv | Tuple ts   = S>Z _
-occursLemma tv _ sub TyVarCont               ntv | Variant ts = S>Z _
-occursLemma tv _ sub (ArrowCont1 t1 t2 cont) ntv with sizeLemma tv t2 sub
-occursLemma tv _ sub (ArrowCont1 t1 t2 cont) ntv | InL gt = S>S _ _ (gtPlusBoth (occursLemma tv t1 sub cont ntv) gt)
-occursLemma tv _ sub (ArrowCont1 t1 t2 cont) ntv | InR eq rewrite eq = S>S _ _ (gtPlusAfter _ (occursLemma tv t1 sub cont ntv ))
-occursLemma tv _ sub (ArrowCont2 t1 t2 cont) ntv with sizeLemma tv t1 sub
-occursLemma tv _ sub (ArrowCont2 t1 t2 cont) ntv | InL gt = S>S _ _ (gtPlusBoth gt (occursLemma tv t2 sub cont ntv))
-occursLemma tv _ sub (ArrowCont2 t1 t2 cont) ntv | InR eq rewrite eq = S>S _ _ (gtPlusBefore (occursSize t1) (occursLemma tv t2 sub cont ntv ))
-occursLemma tv _ sub (TupleCont ts x)        ntv = S>S _ _ (occursLemmaVect tv ts sub x ntv)
-occursLemma tv _ sub (VariantCont ts x)      ntv = S>S _ _ (occursLemmaVect tv ts sub x ntv)
-occursLemmaVect tv _ sub (ConsCont1 t ts cont) ntv with sizeLemmaVect tv ts sub
-occursLemmaVect tv _ sub (ConsCont1 t ts cont) ntv | InL gt = S>S _ _ (gtPlusBoth (occursLemma tv t sub cont ntv) gt)
-occursLemmaVect tv _ sub (ConsCont1 t ts cont) ntv | InR eq rewrite eq = S>S _ _ (gtPlusAfter (occursSizeVect ts) (occursLemma tv t sub cont ntv))
-occursLemmaVect tv _ sub (ConsCont2 t ts cont) ntv with sizeLemma tv t sub
-occursLemmaVect tv _ sub (ConsCont2 t ts cont) ntv | InL gt = S>S _ _ (gtPlusBoth gt (occursLemmaVect tv ts sub cont ntv))
-occursLemmaVect tv _ sub (ConsCont2 t ts cont) ntv | InR eq rewrite eq = S>S _ _ (gtPlusBefore (occursSize t) (occursLemmaVect tv ts sub cont ntv))
+occursLemma : {tn : nat} (tv : fin tn) (t : type tn) (sub : typeSubstitution tn tn) -> contains tv t -> not (t == TyVar tv) ->
+  occursSize (applyTsubst sub t) > occursSize (applyTsubst sub (TyVar tv))
+occursLemmaVect : {n tn : nat} (tv : fin tn) (ts : vect (type tn) n) (sub : typeSubstitution tn tn) (cont : containsVect tv ts) -> 
+  occursSizeVect (applyTsubstVect sub ts) > occursSize (applyTsubst sub (TyVar tv))
+occursLemma tv _ sub TyVarCont               neq with neq Refl
+occursLemma tv _ sub TyVarCont               neq | ()
+occursLemma tv _ sub (ArrowCont1 t1 t2 cont) neq with typeEq t1 (TyVar tv)
+occursLemma tv _ sub (ArrowCont1 ._ t2 cont) neq | Yes Refl = gtPlusBeforeLemma _ (occursSize (applyTsubst sub t2))
+occursLemma tv _ sub (ArrowCont1 t1 t2 cont) neq | No neq2  = gtPlusBothLemma2 _ _ _ (occursLemma tv t1 sub cont neq2)
+occursLemma tv _ sub (ArrowCont2 t1 t2 cont) neq with typeEq t2 (TyVar tv)
+occursLemma tv _ sub (ArrowCont2 t1 ._ cont) neq | Yes Refl = gtPlusAfterLemma (occursSize (applyTsubst sub t1)) _
+occursLemma tv _ sub (ArrowCont2 t1 t2 cont) neq | No neq2  = gtPlusBothLemma1 (occursSize (applyTsubst sub t1)) _ _ (occursLemma tv t2 sub cont neq2)
+occursLemma tv _ sub (TupleCont ts cont)     neq = gtTrans sucGt (occursLemmaVect tv ts sub cont)
+occursLemma tv _ sub (VariantCont ts cont)   neq = gtTrans sucGt (occursLemmaVect tv ts sub cont)
+occursLemmaVect tv _ sub (ConsCont1 t ts cont) with typeEq t (TyVar tv)
+occursLemmaVect tv _ sub (ConsCont1 _ ts cont) | Yes Refl = gtPlusBeforeLemma _ (occursSizeVect (applyTsubstVect sub ts))
+occursLemmaVect tv _ sub (ConsCont1 t ts cont) | No neq   = gtPlusBothLemma2 _ _ _ (occursLemma tv t sub cont neq)
+occursLemmaVect tv _ sub (ConsCont2 t ts cont) = gtPlusBothLemma1 (occursSize (applyTsubst sub t)) _ _ (occursLemmaVect tv ts sub cont) 
 
 occursCheck : {tn : nat} (tv : fin tn) (t : type tn) (sub : typeSubstitution tn tn) -> contains tv t -> unifier (TyVar tv) t sub -> t == TyVar tv
-occursCheck tv .(TyVar tv)   sub TyVarCont               (Unifer eq) = Refl
-occursCheck tv .(t1 => t2)   sub (ArrowCont1 t1 t2 cont) (Unifer eq) = {!!}
-occursCheck tv .(t1 => t2)   sub (ArrowCont2 t1 t2 cont) (Unifer eq) = {!!}
-occursCheck tv .(Tuple ts)   sub (TupleCont ts x)        (Unifer eq) = {!!}
-occursCheck tv .(Variant ts) sub (VariantCont ts x)      (Unifer eq) = {!!}
+occursCheck tv t sub cont (Unifer eq) with typeEq t (TyVar tv)
+occursCheck tv _ sub cont (Unifer eq) | Yes Refl = Refl
+occursCheck tv t sub cont (Unifer eq) | No neq   with occursLemma tv t sub cont neq 
+occursCheck tv t sub cont (Unifer eq) | No neq   | lem rewrite eq with sucNrefl lem
+occursCheck tv t sub cont (Unifer eq) | No neq   | lem | ()
 
 extend : {tn : nat} (sub : typeSubstitution tn tn) (tv : fin tn) (t : type tn) -> idempotent sub -> t fixedPoint sub -> tv unmoved sub -> 
   decide (typeSubstitution tn tn * λ sub' -> idempotent sub' × (sub' extends sub) × unifier (TyVar tv) t sub')
