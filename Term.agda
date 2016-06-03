@@ -1,6 +1,7 @@
 module Term where
 
 open import Basics
+open import Nat
 open import Fin
 open import Vect
 open import Type

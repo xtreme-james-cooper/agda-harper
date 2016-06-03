@@ -1,6 +1,7 @@
 module RawEvaluation where
 
 open import Basics
+open import Nat
 open import Fin
 open import Option
 open import RawTerm

@@ -1,6 +1,7 @@
 module Fin where
 
 open import Basics
+open import Nat
 
 data fin : nat -> Set where
   FZ : {n : nat} -> fin (Suc n)

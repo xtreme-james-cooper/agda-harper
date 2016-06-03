@@ -1,6 +1,7 @@
 module Type where
 
 open import Basics
+open import Nat
 open import Fin
 open import Vect
 
@@ -301,3 +302,47 @@ typeVectEq (t1 :: ts1) (t2 :: ts2)   | No neq          | _        = No (lemma ne
   where 
     lemma : {n tn : nat} {t1 t2 : type tn} {ts1 ts2 : vect (type tn) n} -> not (t1 == t2) -> not (t1 :: ts1 == t2 :: ts2)
     lemma neq Refl = neq Refl
+
+-- used variables
+
+data contains {tn : nat} (tv : fin tn) : type tn -> Set
+data containsVect {tn : nat} (tv : fin tn) : {n : nat} -> vect (type tn) n -> Set
+data contains {tn} tv where
+  TyVarCont : contains tv (TyVar tv)
+  ArrowCont1 : (t1 t2 : type tn) -> contains tv t1 -> contains tv (t1 => t2)
+  ArrowCont2 : (t1 t2 : type tn) -> contains tv t2 -> contains tv (t1 => t2)
+  TupleCont : {n : nat} (ts : vect (type tn) n) -> containsVect tv ts -> contains tv (Tuple ts)
+  VariantCont :  {n : nat} (ts : vect (type tn) n) -> containsVect tv ts -> contains tv (Variant ts)
+--  RecCont : (t : type (Suc tn)) -> contains (FS tv) t -> contains tv (Rec t)
+data containsVect {tn} tv where
+  ConsCont1 : {n : nat} (t : type tn) (ts : vect (type tn) n) -> contains tv t -> containsVect tv (t :: ts)
+  ConsCont2 : {n : nat} (t : type tn) (ts : vect (type tn) n) -> containsVect tv ts -> containsVect tv (t :: ts)
+
+_∈_ : {tn : nat} (tv : fin tn) (t : type tn) -> decide (contains tv t) 
+_∈vect_ : {n tn : nat} (tv : fin tn) (ts : vect (type tn) n) -> decide (containsVect tv ts) 
+tv ∈ TyVar tv'  with finEq tv tv'
+tv ∈ TyVar .tv  | Yes Refl = Yes TyVarCont
+tv ∈ TyVar tv'  | No neq   = No (lemma neq)
+  where
+    lemma : {tn : nat} {tv tv' : fin tn} -> not (tv == tv') -> not (contains tv (TyVar tv'))
+    lemma neq TyVarCont = neq Refl
+tv ∈ (t1 => t2) with tv ∈ t1 | tv ∈ t2
+tv ∈ (t1 => t2) | Yes i      | i'    = Yes (ArrowCont1 t1 t2 i)
+tv ∈ (t1 => t2) | No n       | Yes i = Yes (ArrowCont2 t1 t2 i)
+tv ∈ (t1 => t2) | No n       | No n' = No (λ { (ArrowCont1 _ _ i) -> n i ; (ArrowCont2 _ _ i) -> n' i })
+tv ∈ Tuple ts   with tv ∈vect ts 
+tv ∈ Tuple ts   | Yes i = Yes (TupleCont ts i)
+tv ∈ Tuple ts   | No n  = No (λ { (TupleCont _ i) -> n i })
+tv ∈ Variant ts with tv ∈vect ts 
+tv ∈ Variant ts | Yes i = Yes (VariantCont ts i)
+tv ∈ Variant ts | No n  = No (λ { (VariantCont _ i) -> n i })
+--tv ∈ Rec t      with FS tv ∈ t 
+--tv ∈ Rec t      | Yes i = Yes (RecCont t i)
+--tv ∈ Rec t      | No n  = No (λ { (RecCont _ x) -> n x })
+tv ∈vect []      = No (λ ())
+tv ∈vect t :: ts with tv ∈ t | tv ∈vect ts 
+tv ∈vect t :: ts | Yes i     | i'    = Yes (ConsCont1 t ts i)
+tv ∈vect t :: ts | No n      | Yes i = Yes (ConsCont2 t ts i)
+tv ∈vect t :: ts | No n      | No n' = No (λ { (ConsCont1 _ _ i) -> n i ; (ConsCont2 _ _ i) -> n' i })
+
+infix 50 _∈_

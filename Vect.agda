@@ -1,6 +1,7 @@
 module Vect where
 
 open import Basics
+open import Nat
 open import Fin
 
 data vect (A : Set) : nat -> Set where
@@ -20,6 +21,10 @@ insertAt : {A : Set} {n : nat} -> fin (Suc n) -> vect A n -> A -> vect A (Suc n)
 insertAt FZ      vect        a = a :: vect
 insertAt (FS ()) []          a
 insertAt (FS f)  (b :: vect) a = b :: (insertAt f vect a)
+
+replace : {A : Set} {n : nat} -> fin n -> vect A n -> A -> vect A n
+replace FZ     (b :: as) a = a :: as
+replace (FS x) (b :: as) a = b :: replace x as a
 
 map : {A B : Set} {n : nat} -> (A -> B) -> vect A n -> vect B n
 map f []        = []
