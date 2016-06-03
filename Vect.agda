@@ -52,6 +52,10 @@ lookupInsertAtNeq (v :: vs) FZ      (FS y)  a npf = Refl
 lookupInsertAtNeq (v :: vs) (FS x)  FZ      a npf = Refl
 lookupInsertAtNeq (v :: vs) (FS x)  (FS y)  a npf = lookupInsertAtNeq vs x y a (neqFS npf)
 
+replaceLookup : {A : Set} {n : nat} (x : fin n) (as : vect A n) (a : A) -> replace x as a ! x == a
+replaceLookup FZ     (b :: as) a = Refl
+replaceLookup (FS x) (b :: as) a = replaceLookup x as a
+
 mapLookup : {A B : Set} {n : nat} (f : A -> B) (as : vect A n) (x : fin n) -> map f as ! x == f (as ! x)
 mapLookup f (a :: as) FZ     = Refl
 mapLookup f (a :: as) (FS x) = mapLookup f as x

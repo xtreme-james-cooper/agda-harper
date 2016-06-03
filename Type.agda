@@ -305,26 +305,32 @@ typeVectEq (t1 :: ts1) (t2 :: ts2)   | No neq          | _        = No (lemma ne
 
 -- used variables
 
-data contains {tn : nat} (tv : fin tn) : type tn -> Set
-data containsVect {tn : nat} (tv : fin tn) : {n : nat} -> vect (type tn) n -> Set
-data contains {tn} tv where
-  TyVarCont : contains tv (TyVar tv)
-  ArrowCont1 : (t1 t2 : type tn) -> contains tv t1 -> contains tv (t1 => t2)
-  ArrowCont2 : (t1 t2 : type tn) -> contains tv t2 -> contains tv (t1 => t2)
-  TupleCont : {n : nat} (ts : vect (type tn) n) -> containsVect tv ts -> contains tv (Tuple ts)
-  VariantCont :  {n : nat} (ts : vect (type tn) n) -> containsVect tv ts -> contains tv (Variant ts)
---  RecCont : (t : type (Suc tn)) -> contains (FS tv) t -> contains tv (Rec t)
-data containsVect {tn} tv where
-  ConsCont1 : {n : nat} (t : type tn) (ts : vect (type tn) n) -> contains tv t -> containsVect tv (t :: ts)
-  ConsCont2 : {n : nat} (t : type tn) (ts : vect (type tn) n) -> containsVect tv ts -> containsVect tv (t :: ts)
+data contains' {tn : nat} (tv : fin tn) : type tn -> Set
+data containsVect' {tn : nat} (tv : fin tn) : {n : nat} -> vect (type tn) n -> Set
+data contains' {tn} tv where
+  TyVarCont : contains' tv (TyVar tv)
+  ArrowCont1 : (t1 t2 : type tn) -> contains' tv t1 -> contains' tv (t1 => t2)
+  ArrowCont2 : (t1 t2 : type tn) -> contains' tv t2 -> contains' tv (t1 => t2)
+  TupleCont : {n : nat} (ts : vect (type tn) n) -> containsVect' tv ts -> contains' tv (Tuple ts)
+  VariantCont :  {n : nat} (ts : vect (type tn) n) -> containsVect' tv ts -> contains' tv (Variant ts)
+--  RecCont : (t : type (Suc tn)) -> contains' (FS tv) t -> contains' tv (Rec t)
+data containsVect' {tn} tv where
+  ConsCont1 : {n : nat} (t : type tn) (ts : vect (type tn) n) -> contains' tv t -> containsVect' tv (t :: ts)
+  ConsCont2 : {n : nat} (t : type tn) (ts : vect (type tn) n) -> containsVect' tv ts -> containsVect' tv (t :: ts)
 
-_∈_ : {tn : nat} (tv : fin tn) (t : type tn) -> decide (contains tv t) 
-_∈vect_ : {n tn : nat} (tv : fin tn) (ts : vect (type tn) n) -> decide (containsVect tv ts) 
+_contains_ : {tn : nat} -> type tn -> fin tn -> Set
+_contains_ t tv = contains' tv t
+
+_containsVect_ : {n tn : nat} -> vect (type tn) n -> fin tn -> Set
+_containsVect_ t tv = containsVect' tv t
+
+_∈_ : {tn : nat} (tv : fin tn) (t : type tn) -> decide (t contains tv) 
+_∈vect_ : {n tn : nat} (tv : fin tn) (ts : vect (type tn) n) -> decide (ts containsVect tv) 
 tv ∈ TyVar tv'  with finEq tv tv'
 tv ∈ TyVar .tv  | Yes Refl = Yes TyVarCont
 tv ∈ TyVar tv'  | No neq   = No (lemma neq)
   where
-    lemma : {tn : nat} {tv tv' : fin tn} -> not (tv == tv') -> not (contains tv (TyVar tv'))
+    lemma : {tn : nat} {tv tv' : fin tn} -> not (tv == tv') -> not (TyVar tv' contains tv)
     lemma neq TyVarCont = neq Refl
 tv ∈ (t1 => t2) with tv ∈ t1 | tv ∈ t2
 tv ∈ (t1 => t2) | Yes i      | i'    = Yes (ArrowCont1 t1 t2 i)
