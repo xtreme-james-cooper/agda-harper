@@ -24,12 +24,6 @@ cast a eq rewrite eq = a
 funEq : {i j : Level} {A : Set i} {B : Set j} {a b : A} (f : A -> B) -> a == b -> f a == f b
 funEq f Refl = Refl
 
-data examineAndRemember {i : Level} {A : Set i} (x : A) : Set i where
-  It : (y : A) -> x == y -> examineAndRemember x 
-
-inspect : {i : Level} {A : Set i} (x : A) -> examineAndRemember x
-inspect x = It x Refl 
-
 data decide {i : Level} (A : Set i) : Set i where
   Yes : A -> decide A
   No : not A -> decide A
@@ -77,3 +71,12 @@ andTrue {False} = Refl
 andFalse : {b : bool} -> (b and False) == False
 andFalse {True}  = Refl
 andFalse {False} = Refl
+
+-- inspect
+
+record Reveal_·_is_ {a b : Level} {A : Set a} {B : A -> Set b} (f : (x : A) -> B x) (x : A) (y : B x) : Set (a ⊔ b) where
+  constructor [_]
+  field eq : f x == y
+
+inspect : {a b : Level} {A : Set a} {B : A -> Set b} (f : (x : A) -> B x) (x : A) -> Reveal f · x is f x
+inspect f x = [ Refl ]

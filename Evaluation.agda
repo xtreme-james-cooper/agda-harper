@@ -55,18 +55,18 @@ evaluate : {t : type Zero} {r : rawlam Zero False} (e : lam [] r t) -> bool * λ
 evaluatePat : {t : type Zero} {pn : nat} {ts : vect (type Zero) pn} {b : bool} {r : rawlam Zero b} {rp : rawpat Zero} 
   (l : fin pn) (e : lam [] r (ts ! l)) (ps : pat t [] rp ts) -> bool * λ b -> rawlam Zero b * λ r' -> rawevalPat (naturalize l) r rp r' × lam [] r' t * evalPat l e ps
 evaluate (Var () pf)
-evaluate (App {b1 = True} {True} (Abs e1) e2)        with inspect (subst FZ e1 e2)
-evaluate (App {b1 = True} {True} (Abs e1) e2)        | It (_ , _ , req , e3) eq = _ , _ , EvalApp3 req , e3 , EvalApp3 eq
+evaluate (App {b1 = True} {True} (Abs e1) e2)        with subst FZ e1 e2 | inspect (subst FZ e1) e2
+evaluate (App {b1 = True} {True} (Abs e1) e2)        | _ , _ , req , e3  | [ eq ] = _ , _ , EvalApp3 req , e3 , EvalApp3 eq
 evaluate (App {b1 = True} {False} (Abs e1) e2)       with evaluate e2
 evaluate (App {b1 = True} {False} (Abs e1) e2)       | _ , _ , rev , e2' , ev = False , _ , EvalApp2 rev , App (Abs e1) e2' , EvalApp2 ev
 evaluate (App {b1 = False} e1 e2)                    with evaluate e1 
 evaluate (App {b1 = False} e1 e2)                    | _ , _ , rev , e1' , ev = False , _ , EvalApp1 rev , App e1' e2 , EvalApp1 ev
-evaluate (Let {b1 = True} e1 e2)                     with inspect (subst FZ e2 e1)
-evaluate (Let {b1 = True} e1 e2)                     | It (_ , _ , req , e3) eq = _ , _ , EvalLet2 req , e3 , EvalLet2 eq
+evaluate (Let {b1 = True} e1 e2)                     with subst FZ e2 e1 | inspect (subst FZ e2) e1
+evaluate (Let {b1 = True} e1 e2)                     | _ , _ , req , e3  | [ eq ] = _ , _ , EvalLet2 req , e3 , EvalLet2 eq
 evaluate (Let {b1 = False} e1 e2)                    with evaluate e1
 evaluate (Let {b1 = False} e1 e2)                    | _ , _ , rev , e1' , ev = _ , _ , EvalLet1 rev , Let e1' e2 , EvalLet1 ev
-evaluate (Proj {b = True} (Tuple r) p)               with inspect (r lookup p) 
-evaluate (Proj {b = True} (Tuple r) p)               | It (_ , _ , req , e') eq = _ , _ , EvalProj2 req , e' , EvalProj2 eq
+evaluate (Proj {b = True} (Tuple r) p)               with r lookup p    | inspect (_lookup_ r) p 
+evaluate (Proj {b = True} (Tuple r) p)               | _ , _ , req , e' | [ eq ] = _ , _ , EvalProj2 req , e' , EvalProj2 eq
 evaluate (Proj {b = False} e p)                      with evaluate e
 evaluate (Proj {b = False} e p)                      | _ , _ , rev , e' , ev = False , _ , EvalProj1 rev , Proj e' p , EvalProj1 ev
 evaluate (Case {b = True} (Variant l e) ps)          with evaluatePat l e ps 
@@ -77,7 +77,7 @@ evaluate (Case {b = False} e ps)                     | _ , _ , rev , e' , ev = F
 --evaluate (Unfold t {b = False} e Refl)               with evaluate e
 --evaluate (Unfold t {b = False} e Refl)               | _ , _ ,  rev , e' , ev = False , _ , EvalUnfold1 rev , Unfold t e' Refl , EvalUnfold1 ev
 evaluatePat ()     e1 Fail
-evaluatePat FZ     e1 (Match e2 p) with inspect (subst FZ e2 e1) 
-evaluatePat FZ     e1 (Match e2 p) | It (b , _ , req , e') eq = b , _ , EvalPat1 req , e' , EvalPat1 eq
+evaluatePat FZ     e1 (Match e2 p) with subst FZ e2 e1 | inspect (subst FZ e2) e1
+evaluatePat FZ     e1 (Match e2 p) | b , _ , req , e'  | [ eq ] = b , _ , EvalPat1 req , e' , EvalPat1 eq
 evaluatePat (FS l) e1 (Match e2 p) with evaluatePat l e1 p
 evaluatePat (FS l) e1 (Match e2 p) | b , _ , rev , e' , ev = b , _ , EvalPat2 rev , e' , EvalPat2 ev
