@@ -30,6 +30,12 @@ map : {A B : Set} {n : nat} -> (A -> B) -> vect A n -> vect B n
 map f []        = []
 map f (a :: as) = f a :: map f as
 
+filter : {A : Set} {n : nat} {p : A -> Set} -> ((a : A) -> decide (p a)) -> vect A n -> nat * vect A
+filter p []        = Zero , []
+filter p (a :: as) with p a | filter p as
+filter p (a :: as) | Yes _  | n , as' = Suc n , a :: as'
+filter p (a :: as) | No _   | n , as' = n , as'
+
 -- Lemmas
 
 lookupInsertAt : {A : Set} {n : nat} (vs : vect A n) (x : fin (Suc n)) (v : A) -> insertAt x vs v ! x == v

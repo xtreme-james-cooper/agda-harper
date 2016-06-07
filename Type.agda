@@ -324,31 +324,31 @@ _contains_ t tv = contains' tv t
 _containsVect_ : {n tn : nat} -> vect (type tn) n -> fin tn -> Set
 _containsVect_ t tv = containsVect' tv t
 
-_∈_ : {tn : nat} (tv : fin tn) (t : type tn) -> decide (t contains tv) 
-_∈vect_ : {n tn : nat} (tv : fin tn) (ts : vect (type tn) n) -> decide (ts containsVect tv) 
-tv ∈ TyVar tv'  with finEq tv tv'
-tv ∈ TyVar .tv  | Yes Refl = Yes TyVarCont
-tv ∈ TyVar tv'  | No neq   = No (lemma neq)
+_∈t_ : {tn : nat} (tv : fin tn) (t : type tn) -> decide (t contains tv) 
+_∈tvect_ : {n tn : nat} (tv : fin tn) (ts : vect (type tn) n) -> decide (ts containsVect tv) 
+tv ∈t TyVar tv'  with finEq tv tv'
+tv ∈t TyVar .tv  | Yes Refl = Yes TyVarCont
+tv ∈t TyVar tv'  | No neq   = No (lemma neq)
   where
     lemma : {tn : nat} {tv tv' : fin tn} -> not (tv == tv') -> not (TyVar tv' contains tv)
     lemma neq TyVarCont = neq Refl
-tv ∈ (t1 => t2) with tv ∈ t1 | tv ∈ t2
-tv ∈ (t1 => t2) | Yes i      | i'    = Yes (ArrowCont1 t1 t2 i)
-tv ∈ (t1 => t2) | No n       | Yes i = Yes (ArrowCont2 t1 t2 i)
-tv ∈ (t1 => t2) | No n       | No n' = No (λ { (ArrowCont1 _ _ i) -> n i ; (ArrowCont2 _ _ i) -> n' i })
-tv ∈ Tuple ts   with tv ∈vect ts 
-tv ∈ Tuple ts   | Yes i = Yes (TupleCont ts i)
-tv ∈ Tuple ts   | No n  = No (λ { (TupleCont _ i) -> n i })
-tv ∈ Variant ts with tv ∈vect ts 
-tv ∈ Variant ts | Yes i = Yes (VariantCont ts i)
-tv ∈ Variant ts | No n  = No (λ { (VariantCont _ i) -> n i })
---tv ∈ Rec t      with FS tv ∈ t 
---tv ∈ Rec t      | Yes i = Yes (RecCont t i)
---tv ∈ Rec t      | No n  = No (λ { (RecCont _ x) -> n x })
-tv ∈vect []      = No (λ ())
-tv ∈vect t :: ts with tv ∈ t | tv ∈vect ts 
-tv ∈vect t :: ts | Yes i     | i'    = Yes (ConsCont1 t ts i)
-tv ∈vect t :: ts | No n      | Yes i = Yes (ConsCont2 t ts i)
-tv ∈vect t :: ts | No n      | No n' = No (λ { (ConsCont1 _ _ i) -> n i ; (ConsCont2 _ _ i) -> n' i })
+tv ∈t (t1 => t2) with tv ∈t t1 | tv ∈t t2
+tv ∈t (t1 => t2) | Yes i      | i'    = Yes (ArrowCont1 t1 t2 i)
+tv ∈t (t1 => t2) | No n       | Yes i = Yes (ArrowCont2 t1 t2 i)
+tv ∈t (t1 => t2) | No n       | No n' = No (λ { (ArrowCont1 _ _ i) -> n i ; (ArrowCont2 _ _ i) -> n' i })
+tv ∈t Tuple ts   with tv ∈tvect ts 
+tv ∈t Tuple ts   | Yes i = Yes (TupleCont ts i)
+tv ∈t Tuple ts   | No n  = No (λ { (TupleCont _ i) -> n i })
+tv ∈t Variant ts with tv ∈tvect ts 
+tv ∈t Variant ts | Yes i = Yes (VariantCont ts i)
+tv ∈t Variant ts | No n  = No (λ { (VariantCont _ i) -> n i })
+--tv ∈t Rec t      with FS tv ∈ t 
+--tv ∈t Rec t      | Yes i = Yes (RecCont t i)
+--tv ∈t Rec t      | No n  = No (λ { (RecCont _ x) -> n x })
+tv ∈tvect []      = No (λ ())
+tv ∈tvect t :: ts with tv ∈t t | tv ∈tvect ts 
+tv ∈tvect t :: ts | Yes i     | i'    = Yes (ConsCont1 t ts i)
+tv ∈tvect t :: ts | No n      | Yes i = Yes (ConsCont2 t ts i)
+tv ∈tvect t :: ts | No n      | No n' = No (λ { (ConsCont1 _ _ i) -> n i ; (ConsCont2 _ _ i) -> n' i })
 
-infix 50 _∈_
+infix 50 _∈t_
