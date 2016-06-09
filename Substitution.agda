@@ -27,27 +27,42 @@ applyTsubst sub (Variant ts) = Variant (applyTsubstVect sub ts)
 applyTsubstVect sub []        = []
 applyTsubstVect sub (t :: ts) = applyTsubst sub t :: applyTsubstVect sub ts
 
-_∘_ : {tn : nat} -> typeSubstitution tn -> typeSubstitution tn -> typeSubstitution tn
-_∘_ {tn} (TSubst dom1 sub1 is1) (TSubst dom2 sub2 is2) with union finEq dom1 dom2 | inspect (union finEq dom1) dom2
-_∘_ {tn} (TSubst dom1 sub1 is1) (TSubst dom2 sub2 is2) | domsize , dom3           | [ eq ] = 
-  TSubst dom3 sub3 (unionRemainsSet finEq dom1 dom2 dom3 is1 is2 eq)
-  where 
-    sub3 : (x : fin tn) -> (x ∈ dom3 × type tn * λ t -> ((y : fin tn) -> t contains y -> not (y ∈ dom3))) \/ not (x ∈ dom3)
-    sub3 x with sub2 x
-    sub3 x | InL (mem , t , mv) with typeEq (applyTsubst (TSubst dom1 sub1 is1) t) (TyVar x)
-    sub3 x | InL (mem , t , mv) | Yes _  = InR {!!}
-    sub3 x | InL (mem , t , mv) | No neq = InL (unionPreserves2 finEq x dom1 dom2 dom3 mem eq , applyTsubst (TSubst dom1 sub1 is1) t , {!!})
-    sub3 x | InR nmem           with sub1 x
-    sub3 x | InR nmem           | InL (mem , t , mv) = InL (unionPreserves1 finEq x dom1 dom2 dom3 mem eq , t , {!!})
-    sub3 x | InR nmem           | InR nmem2          = InR (unionDoesNotAdd finEq x dom1 dom2 dom3 nmem2 nmem eq)
-
-infixr 50 _∘_
-
 idSubst : {tn : nat} -> typeSubstitution tn
 idSubst = TSubst [] (λ x -> InR (λ { (() , _) })) EmptySet
 
-idempotent : {tn : nat} (sub : typeSubstitution tn) -> sub ∘ sub == sub
-idempotent (TSubst dom sub x) = {!!}
+idempotentLemma : {tn : nat} {domsize : nat} (t : type tn) (dom : vect (fin tn) domsize) (mv : (y : fin tn) -> t contains y -> not (y ∈ dom))
+    (sub : (x : fin tn) -> (x ∈ dom × type tn * λ t -> ((y : fin tn) -> t contains y -> not (y ∈ dom))) \/ not (x ∈ dom)) (is : isSet dom) -> 
+    applyTsubst (TSubst dom sub is) t == t
+idempotentLemmaVect : {tn n : nat} {domsize : nat} (ts : vect (type tn) n) (dom : vect (fin tn) domsize) (mv : (y : fin tn) -> ts containsVect y -> not (y ∈ dom))
+    (sub : (x : fin tn) -> (x ∈ dom × type tn * λ t -> ((y : fin tn) -> t contains y -> not (y ∈ dom))) \/ not (x ∈ dom)) (is : isSet dom) -> 
+    applyTsubstVect (TSubst dom sub is) ts == ts
+idempotentLemma (TyVar tv)   dom mv sub is with sub tv 
+idempotentLemma (TyVar tv)   dom mv sub is | InL (mem , t , _) with mv tv TyVarCont mem
+idempotentLemma (TyVar tv)   dom mv sub is | InL (mem , t , _) | ()
+idempotentLemma (TyVar tv)   dom mv sub is | InR _             = Refl
+idempotentLemma (t1 => t2)   dom mv sub is 
+  rewrite idempotentLemma t1 dom (λ y cont -> mv y (ArrowCont1 t1 t2 cont)) sub is | idempotentLemma t2 dom (λ y cont -> mv y (ArrowCont2 t1 t2 cont)) sub is = Refl
+idempotentLemma (Tuple ts)   dom mv sub is rewrite idempotentLemmaVect ts dom (λ y cont -> mv y (TupleCont ts cont)) sub is = Refl
+idempotentLemma (Variant ts) dom mv sub is rewrite idempotentLemmaVect ts dom (λ y cont -> mv y (VariantCont ts cont)) sub is = Refl
+idempotentLemmaVect []        dom mv sub is = Refl
+idempotentLemmaVect (t :: ts) dom mv sub is
+  rewrite idempotentLemma t dom (λ y cont -> mv y (ConsCont1 t ts cont)) sub is | idempotentLemmaVect ts dom (λ y cont -> mv y (ConsCont2 t ts cont)) sub is = Refl
+
+idempotentVar : {tn : nat} (sub : typeSubstitution tn) (tv : fin tn) -> applyTsubst sub (applySubstVar sub tv) == applySubstVar sub tv
+idempotentVar (TSubst dom sub is) tv with sub tv | inspect sub tv
+idempotentVar (TSubst dom sub is) tv | InL (mem , t , mv) | [ pf ] = idempotentLemma t dom mv sub is
+idempotentVar (TSubst dom sub is) tv | InR _              | [ pf ] with sub tv
+idempotentVar (TSubst dom sub is) tv | InR _              | [ () ] | InL _
+idempotentVar (TSubst dom sub is) tv | InR _              | [ pf ] | InR _ = Refl
+
+idempotent : {tn : nat} (sub : typeSubstitution tn) (t : type tn) -> applyTsubst sub (applyTsubst sub t) == applyTsubst sub t
+idempotentVect : {tn n : nat} (sub : typeSubstitution tn) (ts : vect (type tn) n) -> applyTsubstVect sub (applyTsubstVect sub ts) == applyTsubstVect sub ts
+idempotent sub (TyVar tv)   = idempotentVar sub tv
+idempotent sub (t1 => t2)   rewrite idempotent sub t1 | idempotent sub t2 = Refl
+idempotent sub (Tuple ts)   rewrite idempotentVect sub ts = Refl
+idempotent sub (Variant ts) rewrite idempotentVect sub ts = Refl
+idempotentVect sub []        = Refl
+idempotentVect sub (t :: ts) rewrite idempotentVect sub ts | idempotent sub t = Refl
 
 _fixedPoint_ : {tn : nat} -> type tn -> typeSubstitution tn -> Set
 t fixedPoint sub = applyTsubst sub t == t
@@ -64,11 +79,15 @@ unmovedDoesNotMove tv (TSubst dom sub is) unm | InR nmem          = Refl
 unifier : {tn : nat} -> type tn -> type tn -> typeSubstitution tn -> Set
 unifier t1 t2 sub = applyTsubst sub t1 == applyTsubst sub t2
 
+{-
+
 _extends_ : {tn : nat} -> typeSubstitution tn -> typeSubstitution tn -> Set
 _extends_ {tn} sub' sub = typeSubstitution tn * λ sub'' -> sub' == sub'' ∘ sub
 
 mostGeneralUnifier : {tn : nat} (t1 t2 : type tn) (sub : typeSubstitution tn) -> Set
 mostGeneralUnifier {tn} t1 t2 sub = unifier t1 t2 sub × ((sub' : typeSubstitution tn) -> unifier t1 t2 sub' -> sub' extends sub)
+
+-}
 
 occursSize : {tn : nat} -> type tn -> nat
 occursSizeVect : {n tn : nat} -> vect (type tn) n -> nat
@@ -105,18 +124,28 @@ occursCheck tv t sub cont eq | No neq   with occursLemma tv t sub cont neq
 occursCheck tv t sub cont eq | No neq   | lem rewrite eq with sucNrefl lem
 occursCheck tv t sub cont eq | No neq   | lem | ()
 
+delta : {tn : nat} (tv : fin tn) (t : type tn) -> not (t contains tv) -> typeSubstitution tn
+delta {tn} tv t ni = TSubst (tv :: []) delta' (Insert tv EmptySet (λ { (() , b) }))
+  where
+    delta' : (x : fin tn) -> (x ∈ tv :: [] × type tn * (λ t' → (y : fin tn) → t' contains y → not (y ∈ tv :: []))) \/ not (x ∈ tv :: [])
+    delta' x   with finEq tv x
+    delta' .tv | Yes Refl = InL ((FZ , Refl) , t , (λ { .tv cont (FZ , Refl) -> ni cont ; y cont (FS () , i) }))
+    delta' x   | No neq   = InR (λ { (FZ , i) -> neq i ; (FS () , _) })
+
 extend : {tn : nat} (sub : typeSubstitution tn) (tv : fin tn) (t : type tn) -> t fixedPoint sub -> tv unmoved sub -> 
-  decide (typeSubstitution tn * λ sub' -> (sub' extends sub) × unifier (TyVar tv) t sub')
+  decide (typeSubstitution tn * λ sub' -> unifier (TyVar tv) t sub')
 extend {tn} (TSubst dom sub is) tv t fx fx2 with typeEq t (TyVar tv)
-extend {tn} (TSubst dom sub is) tv _ fx fx2 | Yes Refl = Yes (TSubst dom sub is , (TSubst dom sub is , sym (idempotent (TSubst dom sub is))) , Refl)
+extend {tn} (TSubst dom sub is) tv _ fx fx2 | Yes Refl = Yes (TSubst dom sub is , Refl)
 extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq with tv ∈t t
-extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | Yes i = No (λ { (sub , _ , u) -> neq (occursCheck tv t sub i u) })
-extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | No ni = Yes (TSubst (tv :: dom) sub' (Insert tv is fx2) , {!!} , {!!})
+extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | Yes i = No (λ { (sub , u) -> neq (occursCheck tv t sub i u) })
+extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | No ni = Yes (TSubst (tv :: dom) sub' (Insert tv is fx2) , {!!})
   where
     sub' : (x : fin tn) -> (x ∈ (tv :: dom) × type tn * λ t -> ((y : fin tn) -> t contains y -> not (y ∈ tv :: dom))) \/ not (x ∈ (tv :: dom))
     sub' x   with sub x
-    sub' x   | InL ((ix , i) , t' , mv) = InL ((FS ix , i) , applyTsubst (TSubst (tv :: []) {!!} (Insert tv EmptySet (λ { (() , _) }))) t' , {!!})
+    sub' x   | InL ((ix , i) , t' , mv) = InL ((FS ix , i) , applyTsubst (delta tv t ni) t' , λ y cont mem -> {!!})
     sub' x   | InR nmem                 with finEq tv x
-    sub' .tv | InR nmem                 | Yes Refl = InL (unionPreserves1 finEq tv (tv :: []) dom (tv :: dom) (FZ , Refl) {!!} , t , {!!})
+    sub' .tv | InR nmem                 | Yes Refl with contains? finEq dom tv
+    sub' .tv | InR nmem                 | Yes Refl | Yes mem  with nmem mem
+    sub' .tv | InR nmem                 | Yes Refl | Yes mem  | ()
+    sub' .tv | InR nmem                 | Yes Refl | No nmem' = InL (unionPreserves1 finEq tv (tv :: []) dom (tv :: dom) (FZ , Refl) {!!} , t , {!!})
     sub' x   | InR nmem                 | No neq   = InR (unionDoesNotAdd finEq x (tv :: []) dom (tv :: dom) (λ { (FZ , i) -> neq i ; (FS () , _) }) nmem {!!})
-
