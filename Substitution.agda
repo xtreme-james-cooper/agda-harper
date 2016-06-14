@@ -9,9 +9,11 @@ open import Type
 open import RawTerm
 open import Term
 
+subBody : (tn : nat) {domsize : nat} (dom : vect (fin tn) domsize) -> Set
+subBody tn dom = (x : fin tn) -> (x ∈ dom × type tn * λ t -> ((y : fin tn) -> t contains y -> not (y ∈ dom))) \/ not (x ∈ dom)
+
 data typeSubstitution (tn : nat) : Set where
-  TSubst : {domsize : nat} (dom : vect (fin tn) domsize) 
-    (sub : (x : fin tn) -> (x ∈ dom × type tn * λ t -> ((y : fin tn) -> t contains y -> not (y ∈ dom))) \/ not (x ∈ dom)) -> isSet dom -> typeSubstitution tn
+  TSubst : {domsize : nat} (dom : vect (fin tn) domsize) -> subBody tn dom -> isSet dom -> typeSubstitution tn
 
 applySubstVar : {tn : nat} -> typeSubstitution tn -> fin tn -> type tn
 applySubstVar (TSubst dom sub is) tv with sub tv
@@ -31,11 +33,9 @@ idSubst : {tn : nat} -> typeSubstitution tn
 idSubst = TSubst [] (λ x -> InR (λ { (() , _) })) EmptySet
 
 idempotentLemma : {tn : nat} {domsize : nat} (t : type tn) (dom : vect (fin tn) domsize) (mv : (y : fin tn) -> t contains y -> not (y ∈ dom))
-    (sub : (x : fin tn) -> (x ∈ dom × type tn * λ t -> ((y : fin tn) -> t contains y -> not (y ∈ dom))) \/ not (x ∈ dom)) (is : isSet dom) -> 
-    applyTsubst (TSubst dom sub is) t == t
+    (sub : subBody tn dom) (is : isSet dom) -> applyTsubst (TSubst dom sub is) t == t
 idempotentLemmaVect : {tn n : nat} {domsize : nat} (ts : vect (type tn) n) (dom : vect (fin tn) domsize) (mv : (y : fin tn) -> ts containsVect y -> not (y ∈ dom))
-    (sub : (x : fin tn) -> (x ∈ dom × type tn * λ t -> ((y : fin tn) -> t contains y -> not (y ∈ dom))) \/ not (x ∈ dom)) (is : isSet dom) -> 
-    applyTsubstVect (TSubst dom sub is) ts == ts
+    (sub : subBody tn dom) (is : isSet dom) -> applyTsubstVect (TSubst dom sub is) ts == ts
 idempotentLemma (TyVar tv)   dom mv sub is with sub tv 
 idempotentLemma (TyVar tv)   dom mv sub is | InL (mem , t , _) with mv tv TyVarCont mem
 idempotentLemma (TyVar tv)   dom mv sub is | InL (mem , t , _) | ()
@@ -193,28 +193,46 @@ deltaLimitedVarsVect tv tv' (t :: ts) t' ni (ConsCont2 _ _ cont) | InR c = InR c
 
 extend : {tn : nat} (sub : typeSubstitution tn) (tv : fin tn) (t : type tn) -> t fixedPoint sub -> tv unmoved sub -> 
   decide (typeSubstitution tn * λ sub' -> unifier (TyVar tv) t sub')
-extend {tn} (TSubst {domsize} dom sub is) tv t fx fx2 with typeEq t (TyVar tv)
-extend {tn} (TSubst {domsize} dom sub is) tv _ fx fx2 | Yes Refl = Yes (TSubst dom sub is , Refl)
-extend {tn} (TSubst {domsize} dom sub is) tv t fx fx2 | No neq with tv ∈t t
-extend {tn} (TSubst {domsize} dom sub is) tv t fx fx2 | No neq | Yes i = No (λ { (sub , u) -> neq (occursCheck tv t sub i u) })
-extend {tn} (TSubst {domsize} dom sub is) tv t fx fx2 | No neq | No ni = Yes (TSubst (tv :: dom) sub' (Insert tv is fx2) , {!!})
+extend {tn} (TSubst dom sub is) tv t fx fx2 with typeEq t (TyVar tv)
+extend {tn} (TSubst dom sub is) tv _ fx fx2 | Yes Refl = Yes (TSubst dom sub is , Refl)
+extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq with tv ∈t t
+extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | Yes i = No (λ { (sub , u) -> neq (occursCheck tv t sub i u) })
+extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | No ni = Yes (sub' , unify)
   where
-    sub' : (x : fin tn) -> (x ∈ (tv :: dom) × type tn * λ t -> ((y : fin tn) -> t contains y -> not (y ∈ tv :: dom))) \/ not (x ∈ (tv :: dom))
-    sub' x   with sub x
-    sub' x   | InL ((ix , i) , t' , mv) = InL ((FS ix , i) , applyTsubst (delta tv t ni) t' , lemma)
+    subBody' : subBody tn (tv :: dom)
+    subBody' x   with sub x
+    subBody' x   | InL ((ix , i) , t' , mv) = InL ((FS ix , i) , applyTsubst (delta tv t ni) t' , lemma)
       where
         lemma : (y : fin tn) -> applyTsubst (delta tv t ni) t' contains y -> not (y ∈ tv :: dom)
         lemma .tv cont (FZ , Refl) = deltaClears tv t' t ni cont
         lemma y   cont (FS ix , i) with deltaLimitedVars tv y t' t ni cont 
         lemma y   cont (FS ix , i) | InL tmem = mv y tmem (ix , i)
         lemma y   cont (FS ix , i) | InR tmem = fx y (ix , i) tmem
-    sub' x   | InR nmem                 with finEq tv x
-    sub' .tv | InR nmem                 | Yes Refl with contains? finEq dom tv
-    sub' .tv | InR nmem                 | Yes Refl | Yes mem  with nmem mem
-    sub' .tv | InR nmem                 | Yes Refl | Yes mem  | ()
-    sub' .tv | InR nmem                 | Yes Refl | No nmem' = InL (unionPreserves1 finEq tv (tv :: []) dom (tv :: dom) (FZ , Refl) {!!} , t , lemma)
+    subBody' x   | InR nmem                 with finEq tv x
+    subBody' .tv | InR nmem                 | Yes Refl with contains? finEq dom tv
+    subBody' .tv | InR nmem                 | Yes Refl | Yes mem  with nmem mem
+    subBody' .tv | InR nmem                 | Yes Refl | Yes mem  | ()
+    subBody' .tv | InR nmem                 | Yes Refl | No nmem' = InL ((FZ , Refl) , t , lemma)
       where
         lemma : (y : fin tn) -> t contains y -> not (y ∈ tv :: dom)
         lemma .tv cont (FZ , Refl) = ni cont
         lemma y   cont (FS ix , i) = fx y (ix , i) cont
-    sub' x   | InR nmem                 | No neq   = InR (unionDoesNotAdd finEq x (tv :: []) dom (tv :: dom) (λ { (FZ , i) -> neq i ; (FS () , _) }) nmem {!!})
+    subBody' x   | InR nmem                 | No neq   = InR (λ { (FZ , i) -> neq i ; (FS ix , i) -> nmem (ix , i) })
+
+    sub' : typeSubstitution tn
+    sub' = TSubst (tv :: dom) subBody' (Insert tv is fx2)
+
+    tunmoved : applyTsubst sub' t == t
+    tunmoved = {!!}
+
+    unify : applySubstVar sub' tv == applyTsubst sub' t
+    unify with sub tv 
+    unify | InL (mem , t' , mv) with fx2 mem
+    unify | InL (mem , t' , mv) | ()
+    unify | InR nmem            with finEq tv tv
+    unify | InR nmem            | Yes Refl with contains? finEq dom tv
+    unify | InR nmem            | Yes Refl | Yes mem  with nmem mem
+    unify | InR nmem            | Yes Refl | Yes mem  | ()
+    unify | InR nmem            | Yes Refl | No nmem' = sym tunmoved
+    unify | InR nmem            | No neq   with neq Refl
+    unify | InR nmem            | No neq   | ()
