@@ -197,35 +197,53 @@ extend {tn} (TSubst dom sub is) tv t fx fx2 with typeEq t (TyVar tv)
 extend {tn} (TSubst dom sub is) tv _ fx fx2 | Yes Refl = Yes (TSubst dom sub is , Refl)
 extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq with tv ∈t t
 extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | Yes i = No (λ { (sub , u) -> neq (occursCheck tv t sub i u) })
-extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | No ni = Yes (sub' , unify)
+extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | No ni = Yes (sub' t ni fx , unify)
   where
-    subBody' : subBody tn (tv :: dom)
-    subBody' x   with sub x
-    subBody' x   | InL ((ix , i) , t' , mv) = InL ((FS ix , i) , applyTsubst (delta tv t ni) t' , lemma)
+    subBody' : (t : type tn) -> not (t contains tv) -> t fixedPoint (TSubst dom sub is) -> subBody tn (tv :: dom)
+    subBody' t ni fx x   with sub x
+    subBody' t ni fx x   | InL ((ix , i) , t' , mv) = InL ((FS ix , i) , applyTsubst (delta tv t ni) t' , lemma)
       where
         lemma : (y : fin tn) -> applyTsubst (delta tv t ni) t' contains y -> not (y ∈ tv :: dom)
         lemma .tv cont (FZ , Refl) = deltaClears tv t' t ni cont
         lemma y   cont (FS ix , i) with deltaLimitedVars tv y t' t ni cont 
         lemma y   cont (FS ix , i) | InL tmem = mv y tmem (ix , i)
         lemma y   cont (FS ix , i) | InR tmem = fx y (ix , i) tmem
-    subBody' x   | InR nmem                 with finEq tv x
-    subBody' .tv | InR nmem                 | Yes Refl with contains? finEq dom tv
-    subBody' .tv | InR nmem                 | Yes Refl | Yes mem  with nmem mem
-    subBody' .tv | InR nmem                 | Yes Refl | Yes mem  | ()
-    subBody' .tv | InR nmem                 | Yes Refl | No nmem' = InL ((FZ , Refl) , t , lemma)
+    subBody' t ni fx x   | InR nmem                 with finEq tv x
+    subBody' t ni fx .tv | InR nmem                 | Yes Refl with contains? finEq dom tv
+    subBody' t ni fx .tv | InR nmem                 | Yes Refl | Yes mem  with nmem mem
+    subBody' t ni fx .tv | InR nmem                 | Yes Refl | Yes mem  | ()
+    subBody' t ni fx .tv | InR nmem                 | Yes Refl | No nmem' = InL ((FZ , Refl) , t , lemma)
       where
         lemma : (y : fin tn) -> t contains y -> not (y ∈ tv :: dom)
         lemma .tv cont (FZ , Refl) = ni cont
         lemma y   cont (FS ix , i) = fx y (ix , i) cont
-    subBody' x   | InR nmem                 | No neq   = InR (λ { (FZ , i) -> neq i ; (FS ix , i) -> nmem (ix , i) })
+    subBody' t ni fx x   | InR nmem                 | No neq   = InR (λ { (FZ , i) -> neq i ; (FS ix , i) -> nmem (ix , i) })
 
-    sub' : typeSubstitution tn
-    sub' = TSubst (tv :: dom) subBody' (Insert tv is fx2)
+    sub' : (t : type tn) -> not (t contains tv) -> t fixedPoint (TSubst dom sub is) -> typeSubstitution tn
+    sub' t ni fx = TSubst (tv :: dom) (subBody' t ni fx) (Insert tv is fx2)
 
-    tunmoved : applyTsubst sub' t == t
-    tunmoved = {!!}
+    tunmoved : (t t' : type tn) (ni : not (t' contains tv)) (fx : t' fixedPoint (TSubst dom sub is)) -> not (t contains tv) -> t fixedPoint (TSubst dom sub is) ->
+      applyTsubst (sub' t' ni fx) t == t
+    tunmovedVect : {n : nat} (ts : vect (type tn) n) (t' : type tn) (ni : not (t' contains tv)) (fx : t' fixedPoint (TSubst dom sub is)) -> 
+      not (ts containsVect tv) -> ts fixedPointVect (TSubst dom sub is) -> applyTsubstVect (sub' t' ni fx) ts == ts
+    tunmoved (TyVar x)    t' ni' fx' ni fx with sub x
+    tunmoved (TyVar x)    t' ni' fx' ni fx | InL (mem , tt , mv) with fx x mem TyVarCont
+    tunmoved (TyVar x)    t' ni' fx' ni fx | InL (mem , tt , mv) | ()
+    tunmoved (TyVar x)    t' ni' fx' ni fx | InR nmem            with finEq tv x 
+    tunmoved (TyVar .tv)  t' ni' fx' ni fx | InR nmem            | Yes Refl with ni TyVarCont
+    tunmoved (TyVar .tv)  t' ni' fx' ni fx | InR nmem            | Yes Refl | ()
+    tunmoved (TyVar x)    t' ni' fx' ni fx | InR nmem            | No neq   = Refl
+    tunmoved (t1 => t2)   t' ni' fx' ni fx 
+      rewrite tunmoved t1 t' ni' fx' (λ cont -> ni (ArrowCont1 t1 t2 cont)) (λ tv mem cont -> fx tv mem (ArrowCont1 t1 t2 cont)) 
+            | tunmoved t2 t' ni' fx' (λ cont -> ni (ArrowCont2 t1 t2 cont)) (λ tv mem cont -> fx tv mem (ArrowCont2 t1 t2 cont)) = Refl
+    tunmoved (Tuple ts)   t' ni' fx' ni fx rewrite tunmovedVect ts t' ni' fx' (λ cont -> ni (TupleCont ts cont)) (λ tv mem cont -> fx tv mem (TupleCont ts cont)) = Refl
+    tunmoved (Variant ts) t' ni' fx' ni fx rewrite tunmovedVect ts t' ni' fx' (λ cont -> ni (VariantCont ts cont)) (λ tv mem cont -> fx tv mem (VariantCont ts cont)) = Refl
+    tunmovedVect []        t' ni' fx' ni fx = Refl
+    tunmovedVect (t :: ts) t' ni' fx' ni fx 
+      rewrite tunmoved t t' ni' fx' (λ cont -> ni (ConsCont1 t ts cont)) (λ tv mem cont -> fx tv mem (ConsCont1 t ts cont))
+            | tunmovedVect ts t' ni' fx' (λ cont -> ni (ConsCont2 t ts cont)) (λ tv mem cont -> fx tv mem (ConsCont2 t ts cont)) = Refl
 
-    unify : applySubstVar sub' tv == applyTsubst sub' t
+    unify : applySubstVar (sub' t ni fx) tv == applyTsubst (sub' t ni fx) t
     unify with sub tv 
     unify | InL (mem , t' , mv) with fx2 mem
     unify | InL (mem , t' , mv) | ()
@@ -233,6 +251,6 @@ extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | No ni = Yes (sub' , unify
     unify | InR nmem            | Yes Refl with contains? finEq dom tv
     unify | InR nmem            | Yes Refl | Yes mem  with nmem mem
     unify | InR nmem            | Yes Refl | Yes mem  | ()
-    unify | InR nmem            | Yes Refl | No nmem' = sym tunmoved
+    unify | InR nmem            | Yes Refl | No nmem' = sym (tunmoved t t ni fx ni fx)
     unify | InR nmem            | No neq   with neq Refl
     unify | InR nmem            | No neq   | ()
