@@ -324,6 +324,9 @@ _contains_ t tv = contains' tv t
 _containsVect_ : {n tn : nat} -> vect (type tn) n -> fin tn -> Set
 _containsVect_ t tv = containsVect' tv t
 
+infix 50 _contains_
+infix 50 _containsVect_
+
 _∈t_ : {tn : nat} (tv : fin tn) (t : type tn) -> decide (t contains tv) 
 _∈tvect_ : {n tn : nat} (tv : fin tn) (ts : vect (type tn) n) -> decide (ts containsVect tv) 
 tv ∈t TyVar tv'  with finEq tv tv'

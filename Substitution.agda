@@ -32,6 +32,15 @@ applyTsubstVect sub (t :: ts) = applyTsubst sub t :: applyTsubstVect sub ts
 idSubst : {tn : nat} -> typeSubstitution tn
 idSubst = TSubst [] (λ x -> InR (λ { (() , _) })) EmptySet
 
+idSubstIsId : {tn : nat} (t : type tn) -> applyTsubst idSubst t == t
+idSubstIsIdVect : {tn n : nat} (ts : vect (type tn) n) -> applyTsubstVect idSubst ts == ts
+idSubstIsId (TyVar tv)   = Refl
+idSubstIsId (t1 => t2)   rewrite idSubstIsId t1 | idSubstIsId t2 = Refl
+idSubstIsId (Tuple ts)   rewrite idSubstIsIdVect ts = Refl
+idSubstIsId (Variant ts) rewrite idSubstIsIdVect ts = Refl
+idSubstIsIdVect []        = Refl
+idSubstIsIdVect (t :: ts) rewrite idSubstIsId t | idSubstIsIdVect ts = Refl
+
 idempotentLemma : {tn : nat} {domsize : nat} (t : type tn) (dom : vect (fin tn) domsize) (mv : (y : fin tn) -> t contains y -> not (y ∈ dom))
     (sub : subBody tn dom) (is : isSet dom) -> applyTsubst (TSubst dom sub is) t == t
 idempotentLemmaVect : {tn n : nat} {domsize : nat} (ts : vect (type tn) n) (dom : vect (fin tn) domsize) (mv : (y : fin tn) -> ts containsVect y -> not (y ∈ dom))
@@ -98,15 +107,13 @@ unmovedDoesNotMove tv (TSubst dom sub is) unm | InR nmem          = Refl
 unifier : {tn : nat} -> type tn -> type tn -> typeSubstitution tn -> Set
 unifier t1 t2 sub = applyTsubst sub t1 == applyTsubst sub t2
 
-{-
-
 _extends_ : {tn : nat} -> typeSubstitution tn -> typeSubstitution tn -> Set
-_extends_ {tn} sub' sub = typeSubstitution tn * λ sub'' -> sub' == sub'' ∘ sub
+_extends_ {tn} sub' sub = typeSubstitution tn * λ sub'' -> (t : type tn) -> applyTsubst sub' t == applyTsubst sub'' (applyTsubst sub t)
 
-mostGeneralUnifier : {tn : nat} (t1 t2 : type tn) (sub : typeSubstitution tn) -> Set
-mostGeneralUnifier {tn} t1 t2 sub = unifier t1 t2 sub × ((sub' : typeSubstitution tn) -> unifier t1 t2 sub' -> sub' extends sub)
+infix 50 _extends_
 
--}
+extendsRefl : {tn : nat} (sub : typeSubstitution tn) -> sub extends sub
+extendsRefl sub = idSubst , λ t -> sym (idSubstIsId (applyTsubst sub t))
 
 occursSize : {tn : nat} -> type tn -> nat
 occursSizeVect : {n tn : nat} -> vect (type tn) n -> nat
@@ -165,9 +172,9 @@ deltaClearsVect tv (t :: ts) t' ni (ConsCont1 _ _ cont) = deltaClears tv t t' ni
 deltaClearsVect tv (t :: ts) t' ni (ConsCont2 _ _ cont) = deltaClearsVect tv ts t' ni cont
 
 deltaLimitedVars : {tn : nat} (tv tv' : fin tn) (t t' : type tn) (ni : not (t' contains tv)) -> applyTsubst (delta tv t' ni) t contains tv' ->
-  (t contains tv') \/ (t' contains tv')
+  t contains tv' \/ t' contains tv'
 deltaLimitedVarsVect : {tn n : nat} (tv tv' : fin tn) (ts : vect (type tn) n) (t' : type tn) (ni : not (t' contains tv)) -> 
-  applyTsubstVect (delta tv t' ni) ts containsVect tv' -> (ts containsVect tv') \/ (t' contains tv')
+  applyTsubstVect (delta tv t' ni) ts containsVect tv' -> ts containsVect tv' \/ t' contains tv'
 deltaLimitedVars tv tv' (TyVar x)    t' ni cont                  with finEq tv x
 deltaLimitedVars tv tv' (TyVar .tv)  t' ni cont                  | Yes Refl = InR cont
 deltaLimitedVars tv tv' (TyVar .tv') t' ni TyVarCont             | No neq   = InL TyVarCont
@@ -192,12 +199,12 @@ deltaLimitedVarsVect tv tv' (t :: ts) t' ni (ConsCont2 _ _ cont) | InL c = InL (
 deltaLimitedVarsVect tv tv' (t :: ts) t' ni (ConsCont2 _ _ cont) | InR c = InR c
 
 extend : {tn : nat} (sub : typeSubstitution tn) (tv : fin tn) (t : type tn) -> t fixedPoint sub -> tv unmoved sub -> 
-  decide (typeSubstitution tn * λ sub' -> unifier (TyVar tv) t sub')
+  decide (typeSubstitution tn * λ sub' -> unifier (TyVar tv) t sub' × sub' extends sub)
 extend {tn} (TSubst dom sub is) tv t fx fx2 with typeEq t (TyVar tv)
-extend {tn} (TSubst dom sub is) tv _ fx fx2 | Yes Refl = Yes (TSubst dom sub is , Refl)
+extend {tn} (TSubst dom sub is) tv _ fx fx2 | Yes Refl = Yes (TSubst dom sub is , Refl , extendsRefl (TSubst dom sub is))
 extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq with tv ∈t t
-extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | Yes i = No (λ { (sub , u) -> neq (occursCheck tv t sub i u) })
-extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | No ni = Yes (sub' t ni fx , unify)
+extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | Yes i = No (λ { (sub , u , e) -> neq (occursCheck tv t sub i u) })
+extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | No ni = Yes (sub' t ni fx , unify , delta tv t ni , subIsExtend)
   where
     subBody' : (t : type tn) -> not (t contains tv) -> t fixedPoint (TSubst dom sub is) -> subBody tn (tv :: dom)
     subBody' t ni fx x   with sub x
@@ -221,6 +228,22 @@ extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | No ni = Yes (sub' t ni fx
 
     sub' : (t : type tn) -> not (t contains tv) -> t fixedPoint (TSubst dom sub is) -> typeSubstitution tn
     sub' t ni fx = TSubst (tv :: dom) (subBody' t ni fx) (Insert tv is fx2)
+
+    subIsExtend : (tt : type tn) -> applyTsubst (sub' t ni fx) tt == applyTsubst (delta tv t ni) (applyTsubst (TSubst dom sub is) tt)
+    subIsExtendVect : {n : nat} (ts : vect (type tn) n) -> applyTsubstVect (sub' t ni fx) ts == applyTsubstVect (delta tv t ni) (applyTsubstVect (TSubst dom sub is) ts)
+    subIsExtend (TyVar x)    with sub x
+    subIsExtend (TyVar x)    | InL ((ix , i) , t' , mv) = Refl
+    subIsExtend (TyVar x)    | InR nmem                 with finEq tv x
+    subIsExtend (TyVar .tv)  | InR nmem                 | Yes Refl with contains? finEq dom tv 
+    subIsExtend (TyVar .tv)  | InR nmem                 | Yes Refl | Yes mem  with nmem mem
+    subIsExtend (TyVar .tv)  | InR nmem                 | Yes Refl | Yes mem  | ()
+    subIsExtend (TyVar .tv)  | InR nmem                 | Yes Refl | No nmem' = Refl
+    subIsExtend (TyVar x)    | InR nmem                 | No neq   = Refl
+    subIsExtend (t1 => t2)   rewrite subIsExtend t1 | subIsExtend t2 = Refl
+    subIsExtend (Tuple ts)   rewrite subIsExtendVect ts = Refl
+    subIsExtend (Variant ts) rewrite subIsExtendVect ts = Refl
+    subIsExtendVect []         = Refl
+    subIsExtendVect (tt :: ts) rewrite subIsExtend tt | subIsExtendVect ts = Refl
 
     tunmoved : (t t' : type tn) (ni : not (t' contains tv)) (fx : t' fixedPoint (TSubst dom sub is)) -> not (t contains tv) -> t fixedPoint (TSubst dom sub is) ->
       applyTsubst (sub' t' ni fx) t == t
