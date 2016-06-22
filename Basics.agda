@@ -28,6 +28,10 @@ data decide {i : Level} (A : Set i) : Set i where
   Yes : A -> decide A
   No : not A -> decide A
 
+decideNot : {i : Level} {A : Set i} -> decide A -> decide (not A)
+decideNot (Yes a) = No (λ na -> na a)
+decideNot (No na) = Yes na
+
 equality : Set -> Set
 equality A = (a b : A) -> decide (a == b)
 
@@ -80,3 +84,4 @@ record Reveal_·_is_ {a b : Level} {A : Set a} {B : A -> Set b} (f : (x : A) -> 
 
 inspect : {a b : Level} {A : Set a} {B : A -> Set b} (f : (x : A) -> B x) (x : A) -> Reveal f · x is f x
 inspect f x = [ Refl ]
+

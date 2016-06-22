@@ -6,8 +6,6 @@ open import Fin
 open import Vect
 open import Sets
 open import Type
-open import RawTerm
-open import Term
 
 subBody : (tn : nat) {domsize : nat} (dom : vect (fin tn) domsize) -> Set
 subBody tn dom = (x : fin tn) -> (x ∈ dom × type tn * λ t -> ((y : fin tn) -> t contains y -> not (y ∈ dom))) \/ not (x ∈ dom)
@@ -107,6 +105,9 @@ unmovedDoesNotMove tv (TSubst dom sub is) unm | InR nmem          = Refl
 unifier : {tn : nat} -> type tn -> type tn -> typeSubstitution tn -> Set
 unifier t1 t2 sub = applyTsubst sub t1 == applyTsubst sub t2
 
+unifierVect : {tn n : nat} -> vect (type tn) n -> vect (type tn) n -> typeSubstitution tn -> Set
+unifierVect ts1 ts2 sub = applyTsubstVect sub ts1 == applyTsubstVect sub ts2
+
 _extends_ : {tn : nat} -> typeSubstitution tn -> typeSubstitution tn -> Set
 _extends_ {tn} sub' sub = typeSubstitution tn * λ sub'' -> (t : type tn) -> applyTsubst sub' t == applyTsubst sub'' (applyTsubst sub t)
 
@@ -114,6 +115,9 @@ infix 50 _extends_
 
 extendsRefl : {tn : nat} (sub : typeSubstitution tn) -> sub extends sub
 extendsRefl sub = idSubst , λ t -> sym (idSubstIsId (applyTsubst sub t))
+
+mostGeneral : {tn : nat} -> (typeSubstitution tn -> Set) -> typeSubstitution tn -> Set
+mostGeneral {tn} P sub = P sub × ((sub' : typeSubstitution tn) -> P sub' -> sub' extends sub)
 
 occursSize : {tn : nat} -> type tn -> nat
 occursSizeVect : {n tn : nat} -> vect (type tn) n -> nat
@@ -199,12 +203,12 @@ deltaLimitedVarsVect tv tv' (t :: ts) t' ni (ConsCont2 _ _ cont) | InL c = InL (
 deltaLimitedVarsVect tv tv' (t :: ts) t' ni (ConsCont2 _ _ cont) | InR c = InR c
 
 extend : {tn : nat} (sub : typeSubstitution tn) (tv : fin tn) (t : type tn) -> t fixedPoint sub -> tv unmoved sub -> 
-  decide (typeSubstitution tn * λ sub' -> unifier (TyVar tv) t sub' × sub' extends sub)
+  decide (typeSubstitution tn * mostGeneral (λ sub'' -> unifier (TyVar tv) t sub'' × sub'' extends sub))
 extend {tn} (TSubst dom sub is) tv t fx fx2 with typeEq t (TyVar tv)
-extend {tn} (TSubst dom sub is) tv _ fx fx2 | Yes Refl = Yes (TSubst dom sub is , Refl , extendsRefl (TSubst dom sub is))
+extend {tn} (TSubst dom sub is) tv _ fx fx2 | Yes Refl = Yes (TSubst dom sub is , (Refl , extendsRefl (TSubst dom sub is)) , (λ { sub' (_ , ext) -> ext }))
 extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq with tv ∈t t
-extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | Yes i = No (λ { (sub , u , e) -> neq (occursCheck tv t sub i u) })
-extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | No ni = Yes (sub' t ni fx , unify , delta tv t ni , subIsExtend)
+extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | Yes i = No (λ { (sub , (u , _) , _) -> neq (occursCheck tv t sub i u) })
+extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | No ni = Yes (sub' t ni fx , (unify , delta tv t ni , subIsExtend) , mostGeneralUni)
   where
     subBody' : (t : type tn) -> not (t contains tv) -> t fixedPoint (TSubst dom sub is) -> subBody tn (tv :: dom)
     subBody' t ni fx x   with sub x
@@ -277,3 +281,23 @@ extend {tn} (TSubst dom sub is) tv t fx fx2 | No neq | No ni = Yes (sub' t ni fx
     unify | InR nmem            | Yes Refl | No nmem' = sym (tunmoved t t ni fx ni fx)
     unify | InR nmem            | No neq   with neq Refl
     unify | InR nmem            | No neq   | ()
+
+    mostGeneralUni : (sub2 : typeSubstitution tn) -> applySubstVar sub2 tv == applyTsubst sub2 t × sub2 extends TSubst dom sub is -> sub2 extends sub' t ni fx
+    mostGeneralUni (TSubst dom2 sub2 is2) (uni , sub3 , ext) with difference finEq dom dom2 | inspect (difference finEq dom) dom2
+    mostGeneralUni (TSubst dom2 sub2 is2) (uni , sub3 , ext) | _ , dom4 | [ pf4 ] with remove finEq dom4 tv | inspect (remove finEq dom4) tv
+    mostGeneralUni (TSubst dom2 sub2 is2) (uni , sub3 , ext) | _ , dom4 | [ pf4 ] | _ , dom5 | [ pf5 ] = TSubst dom5 sub5 is5 , {!!}
+      where
+        is5 : isSet dom5
+        is5 = removeRemainsSet finEq pf5 (differenceRemainsSet finEq pf4 is is2)
+
+        sub5 : subBody tn dom5
+        sub5 tv' with finEq tv tv' 
+        sub5 .tv | Yes Refl = InR (removeRemoves dom4 dom5 finEq pf5)
+        sub5 tv' | No neq   with contains? finEq dom2 tv' 
+        sub5 tv' | No neq   | Yes mem = InR (λ mem' -> differenceRemoves dom dom2 dom4 finEq pf4 mem (removeDoesNotAdd dom4 tv tv' dom5 finEq pf5 neq mem'))
+        sub5 tv' | No neq   | No nmem with contains? finEq dom tv'
+        sub5 tv' | No neq   | No nmem | Yes mem  = InL ({!!} , {!!} , {!!})
+        sub5 tv' | No neq   | No nmem | No nmem' = 
+          InR (λ mem -> nmem' (differenceDoesNotAdd dom dom2 dom4 finEq pf4 (removeDoesNotAdd dom4 tv tv' dom5 finEq pf5 neq mem) nmem))
+
+

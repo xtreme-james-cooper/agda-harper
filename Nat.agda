@@ -9,6 +9,9 @@ data nat : Set where
 neqS : (a b : nat) -> not (a == b) -> not (Suc a == Suc b)
 neqS a .a neq Refl = neq Refl
 
+neqSDown : {a b : nat} -> not (Suc a == Suc b) -> not (a == b)
+neqSDown {a} {.a} neq Refl = neq Refl
+
 natEq : equality nat
 natEq Zero    Zero     = Yes Refl
 natEq Zero    (Suc b)  = No (λ ())

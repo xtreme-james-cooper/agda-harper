@@ -40,7 +40,41 @@ union aeq (a :: as) bs with contains? aeq bs a | union aeq as bs
 union aeq (a :: as) bs | Yes _ | un     = un
 union aeq (a :: as) bs | No _  | n , un = Suc n , a :: un
 
+difference : {A : Set} {n m : nat} -> equality A -> vect A n -> vect A m -> nat * vect A
+difference aeq as bs = filter (λ a -> decideNot (contains? aeq bs a)) as
+
+remove : {A : Set} {n : nat} -> equality A -> vect A n -> A -> nat * vect A
+remove aeq as a = filter (λ a' -> decideNot (aeq a a')) as
+
 -- lemmas
+
+filterFilters : {A : Set} {n n' : nat} {p : A -> Set} (a : A) (as : vect A n) (as' : vect A n') (f : (a : A) -> decide (p a)) -> filter f as == (n' , as') -> a ∈ as' -> p a
+filterFilters a []         .[]          f Refl (() , i)
+filterFilters a (b :: as)  as'          f eq   (ix , i)    with f b | filter f as | inspect (filter f) as
+filterFilters a (.a :: as) .(a :: as'') f Refl (FZ , Refl) | Yes pa | n' , as''   | [ pf ] = pa
+filterFilters a (b :: as)  .(b :: as'') f Refl (FS ix , i) | Yes _  | n' , as''   | [ pf ] = filterFilters a as as'' f pf (ix , i)
+filterFilters a (b :: as)  .as''        f Refl (ix , i)    | No _   | n' , as''   | [ pf ] = filterFilters a as as'' f pf (ix , i)
+
+filterRetains : {A : Set} {n n' : nat} {p : A -> Set} (a : A) (as : vect A n) (as' : vect A n') (f : (a : A) -> decide (p a)) -> filter f as == (n' , as') -> p a ->
+  a ∈ as -> a ∈ as'
+filterRetains a []         .[]          f Refl pa (() , i)
+filterRetains a (b :: as)  as'          f eq   pa (ix , i)    with f b | filter f as | inspect (filter f) as
+filterRetains a (.a :: as) .(a :: as'') f Refl pa (FZ , Refl) | Yes _  | n' , as''   | [ pf ] = FZ , Refl
+filterRetains a (b :: as)  .(b :: as'') f Refl pa (FS ix , i) | Yes _  | n' , as''   | [ pf ] with filterRetains a as as'' f pf pa (ix , i)
+filterRetains a (b :: as)  .(b :: as'') f Refl pa (FS ix , i) | Yes _  | n' , as''   | [ pf ] | (ix' , i') = FS ix' , i'
+filterRetains a (.a :: as) .as''        f Refl pa (FZ , Refl) | No nfa | n' , as''   | [ pf ] with nfa pa
+filterRetains a (.a :: as) .as''        f Refl pa (FZ , Refl) | No nfa | n' , as''   | [ pf ] | ()
+filterRetains a (b :: as)  .as''        f Refl pa (FS ix , i) | No _   | n' , as''   | [ pf ] = filterRetains a as as'' f pf pa (ix , i)
+
+filterDoesNotAdd : {A : Set} {n n' : nat} {p : A -> Set} (a : A) (as : vect A n) (as' : vect A n') (f : (a : A) -> decide (p a)) -> filter f as == (n' , as') -> p a ->
+  a ∈ as' -> a ∈ as
+filterDoesNotAdd a []         .[]          f Refl pa (() , i)
+filterDoesNotAdd a (b :: as)  as'          f eq   pa (ix , i)    with f b | filter f as | inspect (filter f) as
+filterDoesNotAdd a (.a :: as) .(a :: as'') f Refl pa (FZ , Refl) | Yes _  | n' , as''   | [ pf ] = FZ , Refl
+filterDoesNotAdd a (b :: as)  .(b :: as'') f Refl pa (FS ix , i) | Yes _  | n' , as''   | [ pf ] with filterDoesNotAdd a as as'' f pf pa (ix , i)
+filterDoesNotAdd a (b :: as)  .(b :: as'') f Refl pa (FS ix , i) | Yes _  | n' , as''   | [ pf ] | (ix' , i') = FS ix' , i'
+filterDoesNotAdd a (b :: as)  .as''        f Refl pa (ix , i)    | No nfa | n' , as''   | [ pf ] with filterDoesNotAdd a as as'' f pf pa (ix , i)
+filterDoesNotAdd a (b :: as)  .as''        f Refl pa (ix , i)    | No nfa | n' , as''   | [ pf ] | (ix' , i') = FS ix' , i'
 
 filterReduces : {A : Set} {n n' : nat} {p : A -> Set} (a : A) (as : vect A n) (as' : vect A n') (f : (a : A) -> decide (p a)) -> filter f as == (n' , as') -> 
   not (a ∈ as) -> not (a ∈ as')
@@ -55,6 +89,34 @@ filterRemainsSet []        .[]         f Refl EmptySet         = EmptySet
 filterRemainsSet (a :: as) as'         f eq   (Insert .a is x) with f a | filter f as | inspect (filter f) as
 filterRemainsSet (a :: as) .(a :: as') f Refl (Insert .a is x) | Yes _  | n , as'     | [ pf ] = Insert a (filterRemainsSet as as' f pf is) (filterReduces a as as' f pf x)
 filterRemainsSet (a :: as) .as'        f Refl (Insert .a is x) | No _   | n , as'     | [ pf ] = filterRemainsSet as as' f pf is
+
+differenceRemoves : {A : Set} {n m n' : nat} {a : A} (as : vect A n) (bs : vect A m) (as' : vect A n') (aeq : equality A) -> difference aeq as bs == (n' , as') ->
+  a ∈ bs -> not (a ∈ as')
+differenceRemoves {A} {n} {m} {n'} {a} as bs as' aeq eq mem mem' = filterFilters a as as' (λ a -> decideNot (contains? aeq bs a)) eq mem' mem
+
+differenceRetains : {A : Set} {n m n' : nat} {a : A} (as : vect A n) (bs : vect A m) (as' : vect A n') (aeq : equality A) -> difference aeq as bs == (n' , as') ->
+  a ∈ as -> not (a ∈ bs) -> a ∈ as'
+differenceRetains {A} {n} {m} {n'} {a} as bs as' aeq eq mem nmem = filterRetains a as as' (λ a -> decideNot (contains? aeq bs a)) eq nmem mem
+
+differenceDoesNotAdd : {A : Set} {n m n' : nat} {a : A} (as : vect A n) (bs : vect A m) (as' : vect A n') (aeq : equality A) -> difference aeq as bs == (n' , as') ->
+  a ∈ as' -> not (a ∈ bs) -> a ∈ as
+differenceDoesNotAdd {A} {n} {m} {n'} {a} as bs as' aeq eq mem nmem = filterDoesNotAdd a as as' (λ a -> decideNot (contains? aeq bs a)) eq nmem mem
+
+differenceRemainsSet : {A : Set} {n m n' : nat} {as : vect A n} {bs : vect A m} {as' : vect A n'} (aeq : equality A) -> difference aeq as bs == (n' , as') -> 
+  isSet as -> isSet bs -> isSet as'
+differenceRemainsSet {A} {n} {m} {n'} {as} {bs} {as'} aeq eq isa isb = filterRemainsSet as as' (λ a -> decideNot (contains? aeq bs a)) eq isa
+
+removeRemoves : {A : Set} {n n' : nat} (as : vect A n) {a : A} (as' : vect A n') (aeq : equality A) -> remove aeq as a == (n' , as') -> not (a ∈ as')
+removeRemoves {A} {n} {n'} as {a} as' aeq eq mem = filterFilters a as as' (λ a' -> decideNot (aeq a a')) eq mem Refl
+
+removeRetains : {A : Set} {n n' : nat} (as : vect A n) (a b : A) (as' : vect A n') (aeq : equality A) -> remove aeq as a == (n' , as') -> not (a == b) -> b ∈ as -> b ∈ as'
+removeRetains {A} {n} {n'} as a b as' aeq eq neq mem = filterRetains b as as' (λ a' -> decideNot (aeq a a')) eq neq mem
+
+removeDoesNotAdd : {A : Set} {n n' : nat} (as : vect A n) (a b : A) (as' : vect A n') (aeq : equality A) -> remove aeq as a == (n' , as') -> not (a == b) -> b ∈ as' -> b ∈ as
+removeDoesNotAdd {A} {n} {n'} as a b as' aeq eq neq mem = filterDoesNotAdd b as as' (λ a' -> decideNot (aeq a a')) eq neq mem 
+
+removeRemainsSet : {A : Set} {n n' : nat} {as : vect A n} {a : A} {as' : vect A n'} (aeq : equality A) -> remove aeq as a == (n' , as') -> isSet as -> isSet as'
+removeRemainsSet {A} {n} {n'} {as} {a} {as'} aeq eq isa = filterRemainsSet as as' (λ a' -> decideNot (aeq a a')) eq isa 
 
 unionDoesNotAdd : {A : Set} {n m p : nat} (aeq : equality A) (a : A) (as : vect A n) (bs : vect A m) (cs : vect A p) -> not (a ∈ as) -> not (a ∈ bs) ->
   union aeq as bs == (p , cs) -> not (a ∈ cs)
