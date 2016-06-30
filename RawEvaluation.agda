@@ -1,14 +1,16 @@
-module RawEvaluation where
+module Agda.RawEvaluation where
 
-open import Basics
-open import Nat
-open import Fin
-open import Option
-open import RawTerm
+open import AgdaUtils.Basics
+open import AgdaUtils.Nat
+open import AgdaUtils.Fin
+open import AgdaUtils.Optional
+open import AgdaUtils.Bool
+open import AgdaUtils.Prod
+open import Agda.RawTerm
 
 _rawlookup_ : {n : nat} {b : bool} -> rawrec n b -> (p : nat) -> option (bool * rawlam n)
-Unit         rawlookup x       = None
-Field e r pf rawlookup Zero    = Some (_ , e)
+Unit         rawlookup x       = ∅
+Field e r pf rawlookup Zero    = [ _ , e ]
 Field e r pf rawlookup (Suc p) = r rawlookup p
 
 infix 60 _rawlookup_
@@ -22,7 +24,7 @@ data raweval {n} where
   EvalLet1 : {b1 b2 : bool} {e1 : rawlam n False} {e1' : rawlam n b1} {e2 : rawlam (Suc n) b2} -> raweval e1 e1' -> raweval (Let e1 e2) (Let e1' e2)
   EvalLet2 : {b1 b2 : bool} {e1 : rawlam n True} {e2 : rawlam (Suc n) b1} {e3 : rawlam n b2} -> rawsubst FZ e2 e1 == (b2 , e3) -> raweval (Let e1 e2) e3
   EvalProj1 : {b : bool} {e : rawlam n False} {e' : rawlam n b} {p : nat} -> raweval e e' -> raweval (Proj e p) (Proj e' p)
-  EvalProj2 : {b1 b2 : bool} {r : rawrec n b1} {p : nat} {e : rawlam n b2} -> (r rawlookup p) == Some (b2 , e) -> raweval (Proj (Tuple r) p) e
+  EvalProj2 : {b1 b2 : bool} {r : rawrec n b1} {p : nat} {e : rawlam n b2} -> (r rawlookup p) == [ b2 , e ] -> raweval (Proj (Tuple r) p) e
   EvalCase1 : {b : bool} {e : rawlam n False} {e' : rawlam n b} {ps : rawpat n} -> raweval e e' -> raweval (Case e ps) (Case e' ps)
   EvalCase2 : {l : nat} {b1 b2 : bool} {e : rawlam n b1} {e' : rawlam n b2} {ps : rawpat n} -> rawevalPat l e ps e' -> raweval (Case (Variant l e) ps) e'
 --  EvalUnfold1 : {b : bool} {e : rawlam n False} {e' : rawlam n b} -> raweval e e' -> raweval (Unfold e) (Unfold e')

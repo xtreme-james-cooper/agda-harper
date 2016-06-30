@@ -1,9 +1,9 @@
-module Type where
+module Agda.Type where
 
-open import Basics
-open import Nat
-open import Fin
-open import Vect
+open import AgdaUtils.Basics
+open import AgdaUtils.Nat
+open import AgdaUtils.Fin
+open import AgdaUtils.Vect
 
 data type (tn : nat) : Set where
   TyVar : fin tn -> type tn

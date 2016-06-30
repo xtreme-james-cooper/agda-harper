@@ -1,8 +1,10 @@
-module RawTerm where
+module Agda.RawTerm where
 
-open import Basics
-open import Nat
-open import Fin
+open import AgdaUtils.Basics
+open import AgdaUtils.Nat
+open import AgdaUtils.Bool
+open import AgdaUtils.Fin
+open import AgdaUtils.Prod
 
 data rawlam (n : nat) : bool -> Set
 data rawrec (n : nat) : bool -> Set

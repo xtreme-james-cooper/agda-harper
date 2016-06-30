@@ -1,17 +1,19 @@
-module Evaluation where
+module Agda.Evaluation where
 
-open import Basics
-open import Nat
-open import Fin
-open import Vect
-open import Option
-open import Type
-open import Term
-open import RawTerm
-open import RawEvaluation
+open import AgdaUtils.Basics
+open import AgdaUtils.Nat
+open import AgdaUtils.Fin
+open import AgdaUtils.Vect
+open import AgdaUtils.Optional
+open import AgdaUtils.Bool
+open import AgdaUtils.Prod
+open import Agda.Type
+open import Agda.Term
+open import Agda.RawTerm
+open import Agda.RawEvaluation
 
 _lookup_ : {n tn rn : nat} {gam : vect (type tn) n} {ts : vect (type tn) rn} {b : bool} {r : rawrec n b} -> 
-  rec gam r ts -> (p : fin rn) -> bool * λ b' -> rawlam n b' * λ r' -> r rawlookup naturalize p == Some (b' , r') × lam gam r' (ts ! p)
+  rec gam r ts -> (p : fin rn) -> bool * λ b' -> rawlam n b' * λ r' -> r rawlookup naturalize p == [ b' , r' ] × lam gam r' (ts ! p)
 Unit         lookup ()
 Field e r pf lookup FZ   = _ , _ , Refl , e
 Field e r pf lookup FS p = r lookup p
@@ -35,7 +37,7 @@ data eval {n} {tn} {gam} where
   EvalProj1 : {rn : nat} {ts : vect (type tn) rn} {b : bool} {r : rawlam n False} {r' : rawlam n b} 
     {e : lam gam r (Tuple ts)} {e' : lam gam r' (Tuple ts)} {p : fin rn} -> eval e e' -> eval (Proj e p) (Proj e' p)
   EvalProj2 : {rn : nat} {ts : vect (type tn) rn} {b1 b2 : bool} {rr : rawrec n b1} {r2 : rawlam n b2} 
-    {r : rec gam rr ts} {p : fin rn} {e : lam gam r2 (ts ! p)} {look : rr rawlookup naturalize p == Some (b2 , r2)} -> 
+    {r : rec gam rr ts} {p : fin rn} {e : lam gam r2 (ts ! p)} {look : rr rawlookup naturalize p == [ b2 , r2 ]} -> 
     r lookup p == (b2 , r2 , look , e) -> eval (Proj (Tuple r) p) e
   EvalCase1 : {pn : nat} {t : type tn} {ts : vect (type tn) pn} {b : bool} {r : rawlam n False} {r' : rawlam n b} {rp : rawpat n}
     {e : lam gam r (Variant ts)} {e' : lam gam r' (Variant ts)} {ps : pat t gam rp ts} -> eval e e' -> eval (Case e ps) (Case e' ps)

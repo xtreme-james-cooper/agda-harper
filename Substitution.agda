@@ -1,11 +1,12 @@
-module Substitution where
+module Agda.Substitution where
 
-open import Basics
-open import Nat
-open import Fin
-open import Vect
-open import Sets
-open import Type
+open import AgdaUtils.Basics
+open import AgdaUtils.Nat
+open import AgdaUtils.Fin
+open import AgdaUtils.Vect
+open import AgdaUtils.Sets
+open import AgdaUtils.Prod
+open import Agda.Type
 
 subBody : (tn : nat) {domsize : nat} (dom : vect (fin tn) domsize) -> Set
 subBody tn dom = (x : fin tn) -> (x ∈ dom × type tn * λ t -> ((y : fin tn) -> t contains y -> not (y ∈ dom))) \/ not (x ∈ dom)

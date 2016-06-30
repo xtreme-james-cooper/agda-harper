@@ -1,10 +1,10 @@
-module Unification where
+module Agda.Unification where
 
-open import Basics
-open import Nat
-open import Vect
-open import Type
-open import Substitution
+open import AgdaUtils.Basics
+open import AgdaUtils.Nat
+open import AgdaUtils.Vect
+open import Agda.Type
+open import Agda.Substitution
 
 extendTrans : {tn : nat} {sub1 sub2 sub3 : typeSubstitution tn} -> sub2 extends sub1 -> sub3 extends sub2 -> sub3 extends sub1
 extendTrans {tn} {sub1} {sub2} {sub3} (sub12 , ext12) (sub23 , ext23) = {!!} , λ t -> {!!}

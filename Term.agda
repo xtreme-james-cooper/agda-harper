@@ -1,11 +1,13 @@
-module Term where
+module Agda.Term where
 
-open import Basics
-open import Nat
-open import Fin
-open import Vect
-open import Type
-open import RawTerm
+open import AgdaUtils.Basics
+open import AgdaUtils.Nat
+open import AgdaUtils.Fin
+open import AgdaUtils.Vect
+open import AgdaUtils.Bool
+open import AgdaUtils.Prod
+open import Agda.Type
+open import Agda.RawTerm
 
 data lam {n tn : nat} (gam : vect (type tn) n) : {b : bool} -> rawlam n b -> type tn -> Set
 data rec {n tn : nat} (gam : vect (type tn) n) : {b : bool} -> rawrec n b -> {rn : nat} -> vect (type tn) rn -> Set

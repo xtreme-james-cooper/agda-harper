@@ -1,10 +1,13 @@
-module Heap where
+module Agda.Heap where
 
-open import Basics
-open import Fin
-open import Vect
-open import Sets
-open import Option
+open import AgdaUtils.Basics
+open import AgdaUtils.Nat
+open import AgdaUtils.Fin
+open import AgdaUtils.Vect
+open import AgdaUtils.Sets
+open import AgdaUtils.Prod
+open import AgdaUtils.Bool
+open import AgdaUtils.Optional
 
 addr : Set
 addr = nat
@@ -18,12 +21,12 @@ isNull (Suc a) = No (λ ())
 
 data heap (A : Set) : nat -> Set where
   Heap : (n : nat) (ls : vect nat n) (map : addr -> option A) -> isSet ls ->
-    (asd : (l : addr) -> l ∈ ls -> A * (λ a -> map l == Some a)) -> 
-    (nasnd : (l : nat) -> not (l ∈ ls) -> map l == None) -> 
+    (asd : (l : addr) -> l ∈ ls -> A * (λ a -> map l == [ a ])) -> 
+    (nasnd : (l : nat) -> not (l ∈ ls) -> map l == ∅) -> 
     heap A n
  
 initial : {A : Set} -> heap A Zero
-initial = Heap Zero [] (λ x -> None) EmptySet (λ { l (() , mem) }) (λ m _ -> Refl) 
+initial = Heap Zero [] (λ x -> ∅) EmptySet (λ { l (() , mem) }) (λ m _ -> Refl) 
 
 size : {A : Set} {n : nat} -> heap A n -> nat
 size (Heap n _ _ _ _ _) = n
